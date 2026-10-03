@@ -9,6 +9,7 @@ export const CABINETS: Cabinet[] = [
     tagline: 'Viruses, worms and trojans are swarming the network. Blast them before they land.',
     category: 'arcade',
     controls: [['← →', 'Move'], ['SPACE', 'Fire']],
+    load: () => import('./invaders/index').then((m) => m.createGame()),
   },
   {
     kind: 'game',

@@ -1,0 +1,92 @@
+.invaders {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* Deep-space synthwave sky behind the transparent Phaser canvas. */
+  background:
+    radial-gradient(ellipse 70% 45% at 50% 108%, rgba(255, 46, 136, 0.35), transparent 70%),
+    linear-gradient(180deg, #05000f 0%, var(--c-deep) 55%, var(--c-purple) 100%);
+}
+.invaders::after {
+  /* Danger line: enemies that reach it infect the system (LAND_Y = 900). */
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 900px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--c-danger) 15%, var(--c-danger) 85%, transparent);
+  box-shadow: 0 0 14px var(--c-danger);
+  opacity: 0.45;
+  pointer-events: none;
+}
+.inv-canvas {
+  position: absolute;
+  inset: 0;
+}
+.inv-canvas canvas {
+  display: block;
+}
+.invaders .hud {
+  z-index: 2;
+}
+.inv-banner {
+  position: absolute;
+  top: 440px;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  text-align: center;
+  font-family: var(--f-display);
+  font-size: 84px;
+  letter-spacing: 6px;
+  color: var(--c-cyan);
+  text-shadow: 0 0 18px var(--c-cyan), 0 0 42px var(--c-pink);
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+}
+.inv-banner.is-on {
+  opacity: 1;
+  transform: scale(1);
+}
+.inv-banner.is-danger {
+  color: var(--c-danger);
+  text-shadow: 0 0 18px var(--c-danger), 0 0 42px var(--c-yellow);
+}
+.inv-boss {
+  position: absolute;
+  top: 120px;
+  left: 50%;
+  z-index: 2;
+  width: 900px;
+  margin-left: -450px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  font-family: var(--f-mono);
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: 3px;
+  color: var(--c-yellow);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.inv-boss.is-on {
+  opacity: 1;
+}
+.inv-boss-track {
+  flex: 1;
+  height: 18px;
+  border: 2px solid var(--c-yellow);
+  border-radius: 9px;
+  overflow: hidden;
+  box-shadow: 0 0 12px var(--c-yellow);
+}
+.inv-boss-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-pink), var(--c-yellow));
+  transform-origin: left;
+  transition: transform 0.15s;
+}
