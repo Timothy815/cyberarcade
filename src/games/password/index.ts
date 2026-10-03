@@ -143,8 +143,11 @@ export function createGame(): GameModule {
 
       ctx.input.onKey((e) => {
         if (e.code !== 'Enter' && e.code !== 'NumpadEnter') return;
-        if (phase === 'typing') submit();
-        else if (phase === 'result' && performance.now() - resultAt >= RESULT_MIN_MS) next();
+        if (e.repeat) return;
+        if (phase === 'typing') {
+          if (field.value === '') return;
+          submit();
+        } else if (phase === 'result' && performance.now() - resultAt >= RESULT_MIN_MS) next();
       });
       ctx.input.onKey((e) => {
         if (phase === 'typing' && e.target !== field && e.key.length === 1) field.focus();

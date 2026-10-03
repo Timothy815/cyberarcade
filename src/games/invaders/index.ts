@@ -52,7 +52,9 @@ export function createGame(): GameModule {
   let tornDown = false;
   let endTimer: ReturnType<typeof setTimeout> | undefined;
   let bannerTimer: ReturnType<typeof setTimeout> | undefined;
-  // Phaser's VisibilityHandler overwrites these and never restores them.
+  // Phaser's VisibilityHandler overwrites window.onblur/onfocus; destroy() restores them here.
+  // It also adds a document `visibilitychange` listener that destroy() never removes (it only
+  // holds an emptied EventEmitter afterward) — a known, accepted Phaser leftover.
   let savedBlur: typeof window.onblur = null;
   let savedFocus: typeof window.onfocus = null;
 
