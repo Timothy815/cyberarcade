@@ -1,0 +1,106 @@
+.phish {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 150px;
+  gap: 28px;
+}
+.phish-timer {
+  width: 1100px;
+  height: 14px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.phish-timer-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-pink), var(--c-yellow));
+  box-shadow: 0 0 12px var(--c-yellow);
+  transform-origin: left;
+}
+.phish-card {
+  width: 1100px;
+  min-height: 420px;
+  padding: 36px 48px;
+  border-radius: 18px;
+  background: rgba(18, 0, 38, 0.92);
+  border: 3px solid var(--c-cyan);
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.5), inset 0 0 24px rgba(0, 240, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.phish-card.is-right {
+  border-color: var(--c-ok);
+  box-shadow: 0 0 40px var(--c-ok);
+}
+.phish-card.is-wrong {
+  border-color: var(--c-danger);
+  box-shadow: 0 0 40px var(--c-danger);
+  animation: phish-shake 0.3s;
+}
+@keyframes phish-shake {
+  25% { transform: translateX(-14px); }
+  75% { transform: translateX(14px); }
+}
+.phish-kind {
+  font-family: var(--f-mono);
+  font-size: 22px;
+  letter-spacing: 0.3em;
+  color: var(--c-cyan);
+}
+.phish-from {
+  font-family: var(--f-mono);
+  font-size: 30px;
+  color: var(--c-ink-dim);
+  overflow-wrap: anywhere;
+}
+.phish-subject {
+  font-size: 36px;
+  font-weight: 700;
+}
+.phish-body {
+  font-size: 34px;
+  line-height: 1.4;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.phish-card.is-url .phish-body {
+  font-family: var(--f-mono);
+  font-size: 40px;
+  color: var(--c-yellow);
+}
+mark.clue {
+  background: rgba(255, 59, 92, 0.3);
+  color: #fff;
+  outline: 3px solid var(--c-danger);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.phish-verdict {
+  min-height: 56px;
+  font-family: var(--f-display);
+  font-size: 44px;
+  letter-spacing: 0.08em;
+}
+.phish-verdict.is-right { color: var(--c-ok); text-shadow: 0 0 16px var(--c-ok); }
+.phish-verdict.is-wrong { color: var(--c-danger); text-shadow: 0 0 16px var(--c-danger); }
+.phish-why {
+  min-height: 44px;
+  font-size: 34px;
+  color: var(--c-yellow);
+}
+.phish-keys {
+  position: absolute;
+  bottom: 48px;
+  left: 120px;
+  right: 120px;
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--f-display);
+  font-size: 40px;
+}
+.key-phish { color: var(--c-pink); text-shadow: 0 0 14px var(--c-pink); }
+.key-legit { color: var(--c-cyan); text-shadow: 0 0 14px var(--c-cyan); }

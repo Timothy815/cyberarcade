@@ -268,3 +268,36 @@ button:focus {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Shared in-game HUD (createHud) */
+.hud {
+  position: absolute;
+  top: 28px;
+  left: 48px;
+  right: 120px; /* clear of the mute indicator in the top-right corner */
+  display: flex;
+  justify-content: space-between;
+  gap: 32px;
+  pointer-events: none;
+  font-family: var(--f-mono);
+}
+
+.hud-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hud-label {
+  font-size: 22px;
+  letter-spacing: 0.25em;
+  color: var(--c-ink-dim);
+  opacity: 0.8;
+}
+
+.hud-value {
+  font-size: 44px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 12px var(--c-cyan);
+}

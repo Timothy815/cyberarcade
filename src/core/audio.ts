@@ -2,7 +2,7 @@ import type { ZzfxParams } from 'zzfx';
 import type { Music } from './music';
 import { safeLocalStorage, type KeyValueStore } from './storage';
 
-export type SfxName = 'move' | 'select' | 'back' | 'error' | 'coin' | 'hit' | 'explode' | 'score' | 'type';
+export type SfxName = 'move' | 'select' | 'back' | 'error' | 'coin' | 'hit' | 'explode' | 'score' | 'type' | 'shoot' | 'powerup';
 
 // ZzFX parameter lists (design new ones at https://killedbyapixel.github.io/ZzFX/).
 export const SFX: Record<SfxName, ZzfxParams> = {
@@ -15,6 +15,8 @@ export const SFX: Record<SfxName, ZzfxParams> = {
   explode: [1.1, 0, 80, 0.01, 0.2, 0.5, 4, 2.8, , , , , , 1.2, , 0.4],
   score: [0.9, 0, 700, 0.02, 0.1, 0.3, 1, 1.5, , , 300, 0.08, 0.05],
   type: [0.3, 0, 900, , 0.005, 0.02, 1, 1.2],
+  shoot: [0.4, 0, 880, , 0.01, 0.06, 2, 1.4, -18],
+  powerup: [0.8, 0, 440, 0.02, 0.12, 0.25, 1, 1.6, , , 440, 0.05, 0.05],
 };
 
 export const MUTE_KEY = 'cyberarcade.muted';
