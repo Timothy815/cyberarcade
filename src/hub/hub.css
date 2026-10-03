@@ -1,0 +1,350 @@
+/* ---------- Background (full-bleed, outside the stage) ---------- */
+/* Also used behind the shell screens; hidden while a game is mounted so it costs nothing during play. */
+.game-layer .hub-bg {
+  filter: brightness(0.55);
+}
+
+.game-layer:has(.game-root) .hub-bg {
+  display: none;
+}
+
+.hub-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, #07000f 0%, var(--c-deep) 25%, var(--c-purple) 52%, #5a0f5e 58%);
+}
+
+.bg-stars i {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #fff;
+  animation: twinkle 4s ease-in-out infinite;
+}
+
+@keyframes twinkle {
+  50% {
+    transform: scale(0.3);
+  }
+}
+
+.bg-sun-glow {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: 90vh;
+  height: 90vh;
+  transform: translate(-50%, -62%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 46, 136, 0.45) 0%, rgba(255, 46, 136, 0.12) 40%, transparent 70%);
+}
+
+.bg-sun {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: 52vh;
+  height: 52vh;
+  transform: translate(-50%, -88%);
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--c-yellow) 0%, #ff8a4c 45%, var(--c-pink) 80%);
+  -webkit-mask: linear-gradient(180deg, #000 0 45%, transparent 45% 49%, #000 49% 58%, transparent 58% 63%, #000 63% 70%, transparent 70% 76%, #000 76% 82%, transparent 82% 89%, #000 89% 93%, transparent 93%);
+  mask: linear-gradient(180deg, #000 0 45%, transparent 45% 49%, #000 49% 58%, transparent 58% 63%, #000 63% 70%, transparent 70% 76%, #000 76% 82%, transparent 82% 89%, #000 89% 93%, transparent 93%);
+  filter: drop-shadow(0 0 30px rgba(255, 46, 136, 0.8));
+  opacity: 0.92;
+}
+
+.bg-mountains {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(58% - 12vh);
+  height: 12vh;
+}
+
+.bg-mountains svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.bg-mountains path {
+  fill: #12002a;
+  stroke: var(--c-cyan);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 6px var(--c-cyan));
+}
+
+.bg-horizon {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 58%;
+  height: 3px;
+  background: var(--c-pink);
+  box-shadow: 0 0 18px 4px var(--c-pink);
+}
+
+.bg-floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 58%;
+  bottom: 0;
+  overflow: hidden;
+  perspective: 32vh;
+  perspective-origin: 50% 0%;
+  background: linear-gradient(180deg, #2a0640 0%, #0b0018 100%);
+}
+
+.bg-grid {
+  position: absolute;
+  left: -100%;
+  right: -100%;
+  top: 0;
+  height: 200%;
+  transform-origin: 50% 0;
+  transform: rotateX(72deg);
+  background-image:
+    linear-gradient(var(--c-pink) 3px, transparent 3px),
+    linear-gradient(90deg, var(--c-pink) 3px, transparent 3px);
+  background-size: 9vh 9vh;
+  background-position: center 0;
+  animation: grid-scroll 1.6s linear infinite;
+  will-change: transform;
+}
+
+/* Animates transform only (compositor), not background-position, which would repaint every frame. */
+@keyframes grid-scroll {
+  to {
+    transform: rotateX(72deg) translateY(9vh);
+  }
+}
+
+/* ---------- Stage content ---------- */
+.hub-logo {
+  position: absolute;
+  top: 50px;
+  left: 0;
+  right: 0;
+  text-align: center;
+}
+
+.hub-logo .chrome {
+  font-size: 128px;
+  line-height: 1;
+}
+
+.hub-sub {
+  margin: 14px 0 0;
+  font-family: var(--f-mono);
+  font-size: 26px;
+  letter-spacing: 0.5em;
+  color: var(--c-ink-dim);
+  text-shadow: 0 0 10px var(--c-pink);
+}
+
+.hub-footer {
+  position: absolute;
+  bottom: 40px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: var(--f-mono);
+  font-size: 26px;
+  letter-spacing: 0.25em;
+  color: var(--c-ink-dim);
+  white-space: pre;
+}
+
+/* ---------- Carousel ---------- */
+.carousel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 300px;
+  height: 620px;
+}
+
+.cabinet {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 600px;
+  height: 600px;
+  padding: 44px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  border-radius: 24px;
+  border: 3px solid var(--accent);
+  background: linear-gradient(180deg, #1e043c 0%, #0e0020 100%);
+  box-shadow:
+    0 0 24px color-mix(in srgb, var(--accent) 70%, transparent),
+    inset 0 0 30px color-mix(in srgb, var(--accent) 22%, transparent);
+  transition:
+    transform 0.45s cubic-bezier(0.2, 0.9, 0.25, 1.1),
+    opacity 0.45s;
+  will-change: transform, translate;
+}
+
+.cabinet.is-center {
+  box-shadow:
+    0 0 50px color-mix(in srgb, var(--accent) 80%, transparent),
+    0 0 120px color-mix(in srgb, var(--accent) 30%, transparent),
+    inset 0 0 40px color-mix(in srgb, var(--accent) 28%, transparent);
+  animation: cab-float 3.2s ease-in-out infinite;
+}
+
+.cabinet.is-dim {
+  filter: saturate(0.7) brightness(0.62);
+}
+
+.accent-classic.cabinet {
+  filter: saturate(0.35);
+}
+
+@keyframes cab-float {
+  50% {
+    translate: 0 -10px;
+  }
+}
+
+.cab-icon {
+  width: 200px;
+  height: 200px;
+  flex: none;
+  color: var(--accent);
+  filter: drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 24px var(--accent));
+}
+
+.cab-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.cab-title {
+  font-family: var(--f-display);
+  font-size: 48px;
+  line-height: 1.05;
+  color: #fff;
+}
+
+.cab-tag {
+  padding: 4px 14px;
+  border-radius: 6px;
+  font-family: var(--f-mono);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+/* Details only on the centre cabinet */
+.cab-tagline,
+.cab-score,
+.cab-note {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.is-center .cab-tagline,
+.is-center .cab-score,
+.is-center .cab-note {
+  opacity: 1;
+  transition-delay: 0.2s;
+}
+
+.cab-tagline {
+  font-size: 24px;
+  line-height: 1.35;
+  color: var(--c-ink-dim);
+}
+
+.cab-score,
+.cab-note {
+  margin-top: auto;
+  font-family: var(--f-mono);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--c-yellow);
+  white-space: pre;
+}
+
+.cab-note.soon {
+  color: var(--c-grey);
+  letter-spacing: 0.3em;
+}
+
+.cabinet.shake {
+  animation: shake 0.4s;
+}
+
+@keyframes shake {
+  20%, 60% { translate: -14px 0; }
+  40%, 80% { translate: 14px 0; }
+}
+
+/* ---------- Attract mode & confirm ---------- */
+.attract {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 120px;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s;
+}
+
+.is-attract .attract {
+  opacity: 1;
+}
+
+.is-attract .hub-footer {
+  opacity: 0;
+}
+
+.attract .blink {
+  margin: 0;
+  font-family: var(--f-display);
+  font-size: 56px;
+  letter-spacing: 0.3em;
+  color: var(--c-yellow);
+  text-shadow: 0 0 20px var(--c-yellow);
+}
+
+.confirm {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: rgba(14, 0, 32, 0.9);
+}
+
+.confirm h2 {
+  margin: 0;
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: 80px;
+  color: var(--c-danger);
+  text-shadow: 0 0 20px var(--c-danger);
+}
+
+.confirm p {
+  margin: 0;
+  font-family: var(--f-mono);
+  font-size: 36px;
+  letter-spacing: 0.3em;
+}

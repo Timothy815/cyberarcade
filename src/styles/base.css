@@ -1,0 +1,270 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--c-deep);
+  color: var(--c-ink);
+  font-family: var(--f-ui);
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  cursor: default;
+}
+
+#app {
+  position: fixed;
+  inset: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+button:focus {
+  outline: none;
+}
+
+/* Fixed 1920×1080 design surface, scaled to fit and centred (see core/stage.ts). */
+.stage {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1920px;
+  height: 1080px;
+  transform: translate(-50%, -50%) scale(var(--stage-scale, 1));
+  transform-origin: center;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.game-layer {
+  background: var(--c-deep);
+}
+
+/* Paint order inside the game layer: backdrop, then the game, then shell screens. */
+.game-layer > .hub-bg {
+  z-index: 0;
+}
+
+.game-layer > .game-root {
+  z-index: 1;
+}
+
+.game-layer > .shell-ui {
+  z-index: 2;
+}
+
+.shell-ui {
+  pointer-events: none;
+}
+
+.shell-ui > * {
+  pointer-events: auto;
+}
+
+/* Category accents: every screen and cabinet sets --accent from its category. */
+.accent-arcade {
+  --accent: var(--c-cyan);
+}
+
+.accent-learn {
+  --accent: var(--c-pink);
+}
+
+.accent-classic {
+  --accent: var(--c-grey);
+}
+
+/* Chrome logo lettering. */
+.chrome {
+  margin: 0;
+  font-family: var(--f-display);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  background: linear-gradient(180deg, #fff 0%, #fff 38%, #7ab8ff 50%, #2a0750 52%, #ffb6e6 62%, #fff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 12px var(--c-pink)) drop-shadow(0 0 32px rgba(255, 46, 136, 0.5));
+}
+
+.neon {
+  margin: 0;
+  font-family: var(--f-display);
+  font-weight: 400;
+  color: #fff;
+  text-shadow:
+    0 0 6px var(--accent, var(--c-cyan)),
+    0 0 18px var(--accent, var(--c-cyan)),
+    0 0 42px var(--accent, var(--c-cyan));
+}
+
+.blink {
+  animation: blink 1.2s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Glitch heading: needs data-text equal to its text. */
+.glitch {
+  position: relative;
+  margin: 0;
+  font-family: var(--f-display);
+  font-weight: 400;
+  color: #fff;
+  text-shadow: 0 0 20px var(--c-pink);
+}
+
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.glitch::before {
+  color: var(--c-cyan);
+  animation: glitch-a 2.4s infinite linear alternate-reverse;
+}
+
+.glitch::after {
+  color: var(--c-pink);
+  animation: glitch-b 1.9s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-a {
+  0%, 82%, 100% { clip-path: inset(0 0 100% 0); transform: none; }
+  84% { clip-path: inset(10% 0 60% 0); transform: translateX(-6px); }
+  88% { clip-path: inset(55% 0 20% 0); transform: translateX(6px); }
+  92% { clip-path: inset(30% 0 45% 0); transform: translateX(-3px); }
+}
+
+@keyframes glitch-b {
+  0%, 76%, 100% { clip-path: inset(0 0 100% 0); transform: none; }
+  78% { clip-path: inset(65% 0 5% 0); transform: translateX(5px); }
+  83% { clip-path: inset(20% 0 62% 0); transform: translateX(-5px); }
+  87% { clip-path: inset(40% 0 35% 0); transform: translateX(4px); }
+}
+
+/* Splash */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2vh;
+  background: radial-gradient(ellipse at 50% 70%, #3a0a5e 0%, var(--c-deep) 65%);
+  cursor: pointer;
+  transition: opacity 0.4s;
+}
+
+.splash.leaving {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash .chrome {
+  font-size: min(9vw, 16vh);
+}
+
+.splash .blink {
+  margin: 0;
+  font-family: var(--f-display);
+  font-size: min(2.4vw, 4vh);
+  letter-spacing: 0.3em;
+  color: var(--c-cyan);
+  text-shadow: 0 0 12px var(--c-cyan);
+}
+
+.splash-note {
+  margin: 0;
+  font-family: var(--f-mono);
+  font-size: min(1.1vw, 2vh);
+  color: var(--c-ink-dim);
+  opacity: 0.7;
+  letter-spacing: 0.15em;
+}
+
+/* Mute indicator */
+.mute-indicator {
+  position: fixed;
+  top: 1.6vh;
+  right: 1.6vh;
+  z-index: 90;
+  width: 4.4vh;
+  height: 4.4vh;
+  padding: 0.8vh;
+  border-radius: 50%;
+  color: var(--c-cyan);
+  background: rgba(14, 0, 32, 0.55);
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  filter: drop-shadow(0 0 6px var(--c-cyan));
+  opacity: 0.75;
+}
+
+.mute-indicator.is-muted {
+  color: var(--c-pink);
+  border-color: rgba(255, 46, 136, 0.5);
+  filter: drop-shadow(0 0 6px var(--c-pink));
+}
+
+.mute-indicator svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Self-test game (hidden, ?selftest) */
+.selftest {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  font-size: 32px;
+}
+
+.selftest button {
+  padding: 16px 48px;
+  border: 2px solid var(--c-cyan);
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

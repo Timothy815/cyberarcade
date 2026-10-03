@@ -1,4 +1,7 @@
 .superpowers/
 node_modules/
 dist/
+dist-offline/
+test-results/
+playwright-report/
 .DS_Store
