@@ -98,6 +98,7 @@ export function createShell(opts: ShellOptions): Shell {
             endRun: (score) => finish({ kind: 'score', score: Math.max(0, Math.floor(score)) }),
             exit: () => finish({ kind: 'exit' }),
           });
+          clearTimeout(loadTimeout); // mounted: the timeout only guards loading, not the run itself
         })
         .catch((error) => finish({ kind: 'crash', error }));
     });

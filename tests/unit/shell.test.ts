@@ -170,6 +170,17 @@ describe('shell', () => {
     expect(layer.hidden).toBe(true);
   });
 
+  it('a game that mounted keeps running past the 15 s load timeout', async () => {
+    const game = fakeGame();
+    const done = shell.launch(cabFor(game), true);
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(shell.state).toBe('playing');
+    expect(game.unmounts).toBe(0);
+    press('Escape');
+    await done;
+  });
+
   it('Esc while a game is still loading returns to the hub', async () => {
     const cab = cabFor(fakeGame());
     cab.load = () => new Promise<GameModule>(() => {}); // never resolves
