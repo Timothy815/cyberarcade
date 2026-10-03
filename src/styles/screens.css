@@ -161,6 +161,7 @@ kbd {
 }
 
 .slot {
+  position: relative;
   width: 170px;
   height: 210px;
   display: grid;
@@ -176,12 +177,21 @@ kbd {
 .slot.active {
   border-color: var(--c-cyan);
   box-shadow: 0 0 30px var(--c-cyan), inset 0 0 24px rgba(0, 240, 255, 0.3);
+}
+
+.slot.active::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  box-shadow: 0 0 30px var(--c-cyan), inset 0 0 24px rgba(0, 240, 255, 0.3);
+  pointer-events: none;
   animation: slot-pulse 0.9s ease-in-out infinite;
 }
 
 @keyframes slot-pulse {
   50% {
-    box-shadow: 0 0 12px var(--c-cyan), inset 0 0 10px rgba(0, 240, 255, 0.2);
+    opacity: 0.35;
   }
 }
 
