@@ -47,7 +47,8 @@ export function createInput(target: Window = window): RootInput {
         h(e);
       } catch (err) {
         // One misbehaving handler must never stop the rest, or the window 'error' crash guard.
-        globalThis.reportError?.(err) ?? setTimeout(() => { throw err; });
+        if (typeof globalThis.reportError === 'function') globalThis.reportError(err);
+        else setTimeout(() => { throw err; });
       }
     }
   };

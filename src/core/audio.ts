@@ -73,10 +73,14 @@ export function createAudio(store: KeyValueStore | null = safeLocalStorage()): A
       unlocking ??= (async () => {
         // ZzFX creates its AudioContext at import time, so import only after a user gesture.
         const [{ ZZFX }, { createMusic }] = await Promise.all([import('zzfx'), import('./music')]);
+        ZZFX.volume = SFX_VOLUME;
+        // Only commit zz/music once setup has fully succeeded: if createMusic throws, `unlocked`
+        // must stay false so a later retry (main.ts's input-driven retry hook) actually retries
+        // instead of believing unlock already worked.
+        const createdMusic = createMusic(ZZFX.audioContext);
+        createdMusic.setMuted(muted);
         zz = ZZFX;
-        zz.volume = SFX_VOLUME;
-        music = createMusic(zz.audioContext);
-        music.setMuted(muted);
+        music = createdMusic;
       })().catch((e) => {
         unlocking = null; // let a later unlock() retry instead of being stuck on a rejected attempt
         throw e;
