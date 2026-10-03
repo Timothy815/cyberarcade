@@ -44,6 +44,7 @@ export function createAudio(store: KeyValueStore | null = safeLocalStorage()): A
   let zz: Zzfx | null = null;
   let music: Music | null = null;
   let wantMusic = false;
+  let unlocking: Promise<void> | null = null;
   const samples = new Map<SfxName, number[]>();
 
   const persist = () => {
@@ -62,15 +63,16 @@ export function createAudio(store: KeyValueStore | null = safeLocalStorage()): A
       return zz !== null;
     },
     async unlock() {
-      if (!zz) {
+      unlocking ??= (async () => {
         // ZzFX creates its AudioContext at import time, so import only after a user gesture.
         const [{ ZZFX }, { createMusic }] = await Promise.all([import('zzfx'), import('./music')]);
         zz = ZZFX;
         zz.volume = SFX_VOLUME;
         music = createMusic(zz.audioContext);
         music.setMuted(muted);
-      }
-      if (zz.audioContext.state !== 'running') await zz.audioContext.resume().catch(() => {});
+      })();
+      await unlocking;
+      if (zz!.audioContext.state !== 'running') await zz!.audioContext.resume().catch(() => {});
       if (wantMusic) music?.start();
     },
     sfx(name) {
