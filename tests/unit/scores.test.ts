@@ -18,6 +18,19 @@ const throwingStore: KeyValueStore = {
   removeItem: () => { throw new Error('blocked'); },
 };
 
+// Reads still succeed (unlike throwingStore above) but writes never land, e.g. quota exceeded.
+// This is the scenario that exposes a stale read: getItem keeps returning the last-written
+// (now outdated) JSON instead of throwing, so the fix must stop trusting storage after a
+// failed write rather than rely on read() happening to also fail.
+function writeThrowingStore(): KeyValueStore {
+  const data = new Map<string, string>();
+  return {
+    getItem: (k) => data.get(k) ?? null,
+    setItem: () => { throw new Error('quota exceeded'); },
+    removeItem: (k) => void data.delete(k),
+  };
+}
+
 describe('sanitizeInitials', () => {
   it('uppercases and keeps three letters', () => {
     expect(sanitizeInitials('zak')).toBe('ZAK');
@@ -112,5 +125,11 @@ describe('scores', () => {
     const s = createScores(null);
     s.add('invaders', 'AAA', 10);
     expect(s.top('invaders')).toHaveLength(1);
+  });
+
+  it('serves the in-memory copy after a write fails, instead of stale storage', () => {
+    const s = createScores(writeThrowingStore());
+    expect(s.add('invaders', 'AAA', 10)).toBe(0);
+    expect(s.top('invaders')).toEqual([expect.objectContaining({ initials: 'AAA', score: 10 })]);
   });
 });

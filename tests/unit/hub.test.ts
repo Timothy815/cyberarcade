@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAudio } from '../../src/core/audio';
+import { createAudio, type Audio } from '../../src/core/audio';
 import { createInput, type RootInput } from '../../src/core/input';
 import { createScores, type Scores } from '../../src/core/scores';
 import type { Cabinet, GameCabinet } from '../../src/core/types';
@@ -29,6 +29,7 @@ describe('hub', () => {
   let layer: HTMLElement;
   let scores: Scores;
   let hub: Hub;
+  let audio: Audio;
   let onLaunch: ReturnType<typeof vi.fn<(cab: GameCabinet) => void>>;
   let assign: ReturnType<typeof vi.fn<(url: string) => void>>;
 
@@ -40,7 +41,8 @@ describe('hub', () => {
     scores = createScores(null);
     onLaunch = vi.fn();
     assign = vi.fn();
-    hub = createHub({ layer, cabinets, audio: createAudio(null), input, scores, onLaunch, nav: { assign } });
+    audio = createAudio(null);
+    hub = createHub({ layer, cabinets, audio, input, scores, onLaunch, nav: { assign } });
     hub.show();
   });
   afterEach(() => {
@@ -106,5 +108,44 @@ describe('hub', () => {
     press('y');
     expect(scores.top('one')).toHaveLength(0);
     expect(document.querySelector('[data-id="one"] .cab-score')?.textContent).toContain('NO SCORES');
+  });
+
+  it('the Ctrl+Alt+X confirm closes when attract mode starts', () => {
+    press('x', { ctrlKey: true, altKey: true, code: 'KeyX' });
+    expect(document.querySelector<HTMLElement>('.confirm')!.hidden).toBe(false);
+    vi.advanceTimersByTime(30_000); // hub idle timeout -> attract mode
+    expect(hub.attract).toBe(true);
+    expect(document.querySelector<HTMLElement>('.confirm')!.hidden).toBe(true);
+  });
+
+  it('the Ctrl+Alt+X confirm auto-cancels after 10 s', () => {
+    press('x', { ctrlKey: true, altKey: true, code: 'KeyX' });
+    expect(document.querySelector<HTMLElement>('.confirm')!.hidden).toBe(false);
+    vi.advanceTimersByTime(10_000);
+    expect(document.querySelector<HTMLElement>('.confirm')!.hidden).toBe(true);
+  });
+
+  it('attract-mode auto-advance does not play the move sound', () => {
+    const sfx = vi.spyOn(audio, 'sfx');
+    vi.advanceTimersByTime(30_000); // enters attract mode
+    sfx.mockClear();
+    vi.advanceTimersByTime(4_000); // one auto-advance step
+    expect(selected()).toBe('soon');
+    expect(sfx).not.toHaveBeenCalledWith('move');
+  });
+
+  it('manual navigation still plays the move sound', () => {
+    const sfx = vi.spyOn(audio, 'sfx');
+    press('ArrowRight');
+    expect(sfx).toHaveBeenCalledWith('move');
+  });
+
+  it('removes the shake class once the shake animation ends, so cab-float can resume', () => {
+    press('ArrowRight');
+    press('Enter');
+    const card = document.querySelector('[data-id="soon"]')!;
+    expect(card.classList.contains('shake')).toBe(true);
+    card.dispatchEvent(new Event('animationend'));
+    expect(card.classList.contains('shake')).toBe(false);
   });
 });

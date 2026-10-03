@@ -37,9 +37,12 @@ type Boards = Record<string, ScoreEntry[]>;
 
 export function createScores(store: KeyValueStore | null = safeLocalStorage()): Scores {
   let memory: Boards = {}; // used when storage is unavailable or broken
+  // Set once a write fails. Storage may still be readable but is now stale/out of sync with
+  // memory (e.g. quota exceeded), so from then on we stop trusting it and only serve memory.
+  let broken = false;
 
   const read = (): Boards => {
-    if (!store) return memory;
+    if (!store || broken) return memory;
     try {
       const parsed: unknown = JSON.parse(store.getItem(SCORES_KEY) ?? '{}');
       return parsed && typeof parsed === 'object' ? (parsed as Boards) : {};
@@ -50,11 +53,12 @@ export function createScores(store: KeyValueStore | null = safeLocalStorage()): 
 
   const write = (boards: Boards) => {
     memory = boards;
-    if (!store) return;
+    if (!store || broken) return;
     try {
       store.setItem(SCORES_KEY, JSON.stringify(boards));
     } catch {
       // Storage full or blocked: keep the in-memory copy, never crash the game.
+      broken = true;
     }
   };
 
