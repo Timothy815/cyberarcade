@@ -7,6 +7,7 @@ import '@fontsource/jetbrains-mono/700.css';
 import './styles/base.css';
 import './styles/screens.css';
 import './hub/hub.css';
+import './games/phish/phish.css';
 
 import { createAudio } from './core/audio';
 import { watchFullscreen } from './core/fullscreen';

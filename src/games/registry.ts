@@ -17,6 +17,7 @@ export const CABINETS: Cabinet[] = [
     tagline: 'Emails, texts and links fly in fast. Can you spot the scam before the clock runs out?',
     category: 'learn',
     controls: [['←', 'Phish'], ['→', 'Legit']],
+    load: () => import('./phish/index').then((m) => m.createGame()),
   },
   {
     kind: 'game',
