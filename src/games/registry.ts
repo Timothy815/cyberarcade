@@ -34,6 +34,7 @@ export const CABINETS: Cabinet[] = [
     tagline: 'Build a password and watch the cracking rig try to break it. How long will it last?',
     category: 'learn',
     controls: [['TYPE', 'Password'], ['ENTER', 'Crack it']],
+    load: () => import('./password/index').then((m) => m.createGame()),
   },
   {
     kind: 'game',

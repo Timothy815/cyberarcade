@@ -43,3 +43,26 @@ test('phish: right answer scores, three wrong answers end the run', async ({ pag
   await expect(page.locator('.game-over .final-score')).toBeVisible({ timeout: 5000 });
   expect(errors).toEqual([]);
 });
+
+test('password: five rounds, input cleared, score adds up', async ({ page }) => {
+  const errors = trackErrors(page);
+  await boot(page);
+  await launch(page, 'password');
+  const field = page.locator('.pw-input');
+  const entries = ['password', 'Xq7#vL2!pR', 'correct horse battery staple', 'kT9$wQ3&zM8^bNx', 'neon taco wizard galaxy 77!'];
+  for (const [i, pw] of entries.entries()) {
+    await expect(page.locator('.pw-round')).toContainText(`ROUND ${i + 1}`);
+    await expect(field).toBeFocused();
+    await page.keyboard.type(pw);
+    await page.keyboard.press('Enter');
+    await expect(field).toHaveValue('');
+    await expect(page.locator('.pw-stamp')).toBeVisible();
+    if (i === 0) await expect(page.locator('.pw-chip')).toContainText(['COMMON PASSWORD']);
+    if (i === 2) await expect(page.locator('.pw-stamp')).toHaveText('SURVIVED!');
+    await page.waitForTimeout(1050); // result ignores Enter for the first second
+    await page.keyboard.press('Enter');
+  }
+  // 48 + (1000 + 500) + (2000 + 500) + (1500 + 500) + (2000 + 500)
+  await expect(page.locator('.game-over .final-score')).toHaveText('8,548');
+  expect(errors).toEqual([]);
+});

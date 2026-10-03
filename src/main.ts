@@ -8,6 +8,7 @@ import './styles/base.css';
 import './styles/screens.css';
 import './hub/hub.css';
 import './games/phish/phish.css';
+import './games/password/password.css';
 
 import { createAudio } from './core/audio';
 import { watchFullscreen } from './core/fullscreen';
