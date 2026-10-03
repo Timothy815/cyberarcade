@@ -81,3 +81,29 @@ test('invaders: Phaser boots, firing scores, Esc tears the canvas down', async (
   await expect(page.locator('canvas')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+
+test('20 launch/exit cycles across the three games leave nothing behind', async ({ page }) => {
+  test.setTimeout(240_000);
+  const errors = trackErrors(page);
+  await boot(page, '?selftest');
+  const games = ['phish', 'password', 'invaders'];
+  const cycle = async (id: string) => {
+    await launch(page, id);
+    await expect(page.locator('.game-root')).toHaveCount(1);
+    await page.waitForTimeout(400); // let the game get going before leaving
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.game-layer')).toBeHidden();
+  };
+
+  // Warm-up: the first launch of each game makes Vite add <link rel=modulepreload> tags for its chunks (once, by design).
+  for (const id of games) await cycle(id);
+  const baseline = await page.evaluate(() => window.__arcadeDebug!.handlerCount());
+  const baseNodes = await page.evaluate(() => document.getElementsByTagName('*').length);
+
+  for (let i = 0; i < 20; i++) await cycle(games[i % games.length]);
+
+  expect(await page.evaluate(() => window.__arcadeDebug!.handlerCount())).toBe(baseline);
+  expect(await page.evaluate(() => document.getElementsByTagName('*').length)).toBe(baseNodes);
+  await expect(page.locator('canvas')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
