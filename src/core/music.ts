@@ -106,6 +106,9 @@ export function createMusic(ctx: AudioContext): Music {
   };
 
   const tick = () => {
+    // A suspended/backgrounded tab can starve the timer; catch nextTime back up instead of
+    // scheduling a burst of notes in the past (silently dropped) once it resumes.
+    if (nextTime < ctx.currentTime) nextTime = ctx.currentTime + 0.05;
     while (nextTime < ctx.currentTime + LOOKAHEAD) {
       schedule(step, nextTime);
       step = (step + 1) % (16 * BARS.length);

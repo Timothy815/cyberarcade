@@ -23,8 +23,12 @@ const SFX_VOLUME = 0.3;
 export interface Audio {
   readonly muted: boolean;
   readonly unlocked: boolean;
+  /** True once the AudioContext is actually producing sound (not just created). */
+  readonly running: boolean;
   /** Must be called from a user gesture (the start splash). Loads ZzFX and resumes the AudioContext. */
   unlock(): Promise<void>;
+  /** Resumes a suspended AudioContext (e.g. after the OS/browser auto-suspends it). No-op before unlock. */
+  resume(): void;
   sfx(name: SfxName): void;
   playMusic(): void;
   stopMusic(): void;
@@ -62,6 +66,9 @@ export function createAudio(store: KeyValueStore | null = safeLocalStorage()): A
     get unlocked() {
       return zz !== null;
     },
+    get running() {
+      return zz?.audioContext.state === 'running';
+    },
     async unlock() {
       unlocking ??= (async () => {
         // ZzFX creates its AudioContext at import time, so import only after a user gesture.
@@ -70,10 +77,16 @@ export function createAudio(store: KeyValueStore | null = safeLocalStorage()): A
         zz.volume = SFX_VOLUME;
         music = createMusic(zz.audioContext);
         music.setMuted(muted);
-      })();
+      })().catch((e) => {
+        unlocking = null; // let a later unlock() retry instead of being stuck on a rejected attempt
+        throw e;
+      });
       await unlocking;
       if (zz!.audioContext.state !== 'running') await zz!.audioContext.resume().catch(() => {});
       if (wantMusic) music?.start();
+    },
+    resume() {
+      if (zz && zz.audioContext.state !== 'running') void zz.audioContext.resume().catch(() => {});
     },
     sfx(name) {
       if (muted || !zz) return;

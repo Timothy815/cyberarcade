@@ -95,4 +95,14 @@ describe('audio (concurrent unlock)', () => {
     await Promise.all([audio.unlock(), audio.unlock()]);
     expect(createMusicSpy).toHaveBeenCalledTimes(1);
   });
+
+  it('a second unlock() retries and succeeds after the first one rejects', async () => {
+    createMusicSpy.mockImplementationOnce(() => {
+      throw new Error('boom');
+    });
+    const audio = createAudio(null);
+    await expect(audio.unlock()).rejects.toThrow('boom');
+    await expect(audio.unlock()).resolves.toBeUndefined();
+    expect(createMusicSpy).toHaveBeenCalledTimes(2);
+  });
 });

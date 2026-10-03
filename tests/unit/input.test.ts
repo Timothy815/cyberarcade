@@ -61,6 +61,18 @@ describe('input', () => {
     expect(late).not.toHaveBeenCalled();
   });
 
+  it('a throwing handler does not stop a later handler, or the crash guard', () => {
+    vi.useFakeTimers(); // the fallback schedules a real throw; never advance past it in this test
+    const after = vi.fn();
+    input.onKey(() => {
+      throw new Error('boom');
+    });
+    input.onKey(after);
+    expect(() => key('keydown', 'Enter')).not.toThrow();
+    expect(after).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
   it('counts handlers', () => {
     const off = input.onKey(() => {});
     input.onAny(() => {});

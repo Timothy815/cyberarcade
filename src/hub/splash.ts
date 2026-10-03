@@ -1,4 +1,5 @@
 import type { Audio } from '../core/audio';
+import { enterFullscreen } from '../core/fullscreen';
 import { el } from '../core/ui/dom';
 
 /**
@@ -15,12 +16,13 @@ export function showSplash(parent: HTMLElement, audio: Audio, onStart: () => voi
   );
   parent.append(root);
 
-  const start = async () => {
+  const start = () => {
     root.removeEventListener('pointerdown', start);
     window.removeEventListener('keydown', start);
-    // Must run synchronously inside the gesture handler.
-    document.documentElement.requestFullscreen?.().catch(() => {});
-    await audio.unlock().catch(() => {});
+    // Must be kicked off synchronously inside the gesture handler, but neither needs to be
+    // awaited: the hub must appear immediately even if fullscreen/audio never resolve.
+    void enterFullscreen().catch(() => {});
+    void audio.unlock().catch(() => {});
     root.classList.add('leaving');
     setTimeout(() => root.remove(), 400);
     onStart();

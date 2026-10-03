@@ -50,6 +50,7 @@ export function createShell(opts: ShellOptions): Shell {
       function finish(outcome: RunOutcome) {
         if (finished) return;
         finished = true;
+        clearTimeout(loadTimeout);
         window.removeEventListener('error', onError);
         window.removeEventListener('unhandledrejection', onRejection);
         hideLoading();
@@ -65,7 +66,22 @@ export function createShell(opts: ShellOptions): Shell {
         resolve(outcome);
       }
 
+      // Esc and the idle timer must already work while the game is still loading, so a
+      // stalled or hung load() never leaves the station stuck with no way out.
+      scoped.onAny(() => idle.reset());
+      scoped.onKey((e) => {
+        if (e.key === 'Escape') {
+          audio.sfx('back');
+          finish({ kind: 'exit' });
+        }
+      });
+      idle.start();
+
       state = 'loading';
+      const loadTimeout = setTimeout(
+        () => finish({ kind: 'crash', error: new Error('load timeout') }),
+        15_000,
+      );
       const load = cab.load ?? (() => Promise.reject(new Error(`${cab.id} has no load()`)));
       load()
         .then(async (mod) => {
@@ -74,13 +90,6 @@ export function createShell(opts: ShellOptions): Shell {
           hideLoading();
           root = createStage(layer, 'game-root');
           layer.prepend(root.el);
-          scoped.onAny(() => idle.reset());
-          scoped.onKey((e) => {
-            if (e.key === 'Escape') {
-              audio.sfx('back');
-              finish({ kind: 'exit' });
-            }
-          });
           state = 'playing';
           idle.start();
           await mod.mount(root.el, {

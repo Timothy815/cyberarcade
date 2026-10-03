@@ -9,6 +9,7 @@ import './styles/screens.css';
 import './hub/hub.css';
 
 import { createAudio } from './core/audio';
+import { watchFullscreen } from './core/fullscreen';
 import { createInput, isTextEntry } from './core/input';
 import { createScores } from './core/scores';
 import { createShell } from './core/shell';
@@ -55,6 +56,16 @@ input.onKey((e) => {
     mute.update();
   }
 });
+
+// Audio can fail to unlock (a dropped first gesture) or get auto-suspended by the OS/browser;
+// retry on the next real input so a station never stays silent for the rest of the session.
+input.onAny((e) => {
+  if (e.type === 'pointermove') return;
+  if (!audio.unlocked) void audio.unlock().catch(() => {});
+  else if (!audio.running) audio.resume();
+});
+
+watchFullscreen();
 
 if (new URLSearchParams(location.search).has('selftest')) {
   window.__arcadeDebug = { handlerCount: () => input.handlerCount() };

@@ -42,7 +42,14 @@ export function createInput(target: Window = window): RootInput {
   const down = new Set<string>();
 
   const emit = <T>(set: Set<(e: T) => void>, e: T) => {
-    for (const h of [...set]) h(e);
+    for (const h of [...set]) {
+      try {
+        h(e);
+      } catch (err) {
+        // One misbehaving handler must never stop the rest, or the window 'error' crash guard.
+        globalThis.reportError?.(err) ?? setTimeout(() => { throw err; });
+      }
+    }
   };
 
   const onKeyDown = (e: KeyboardEvent) => {

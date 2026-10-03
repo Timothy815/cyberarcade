@@ -156,6 +156,34 @@ describe('shell', () => {
     expect(onExit).toHaveBeenCalledTimes(1);
   });
 
+  it('a cabinet whose load never resolves returns to the hub after 15 s', async () => {
+    const cab = cabFor(fakeGame());
+    cab.load = () => new Promise<GameModule>(() => {}); // never resolves
+    const done = shell.launch(cab, true);
+    expect(shell.state).toBe('loading');
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(shell.state).toBe('error'); // load timeout is treated as a crash
+    await vi.advanceTimersByTimeAsync(2_500); // SYSTEM ERROR screen auto-continues
+    await done;
+    expect(shell.state).toBe('idle');
+    expect(onExit).toHaveBeenCalledTimes(1);
+    expect(layer.hidden).toBe(true);
+  });
+
+  it('Esc while a game is still loading returns to the hub', async () => {
+    const cab = cabFor(fakeGame());
+    cab.load = () => new Promise<GameModule>(() => {}); // never resolves
+    const done = shell.launch(cab, true);
+    expect(shell.state).toBe('loading');
+    press('Escape');
+    await done;
+    expect(shell.state).toBe('idle');
+    expect(onExit).toHaveBeenCalledTimes(1);
+    // the load timeout must not also fire once the run already finished
+    await vi.advanceTimersByTimeAsync(15_000);
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
   it('ignores a second launch while one is running', async () => {
     const game = fakeGame();
     const done = shell.launch(cabFor(game), true);
