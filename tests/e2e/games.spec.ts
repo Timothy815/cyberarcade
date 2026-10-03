@@ -66,3 +66,18 @@ test('password: five rounds, input cleared, score adds up', async ({ page }) => 
   await expect(page.locator('.game-over .final-score')).toHaveText('8,548');
   expect(errors).toEqual([]);
 });
+
+test('invaders: Phaser boots, firing scores, Esc tears the canvas down', async ({ page }) => {
+  const errors = trackErrors(page);
+  await boot(page);
+  await launch(page, 'invaders');
+  await expect(page.locator('.inv-canvas canvas')).toHaveCount(1);
+  await expect(page.locator('.inv-banner')).toHaveText('WAVE 1');
+  await page.keyboard.down('Space');
+  await expect(page.locator('[data-hud="score"]')).not.toHaveText('0', { timeout: 8000 });
+  await page.keyboard.up('Space');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.game-layer')).toBeHidden();
+  await expect(page.locator('canvas')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});

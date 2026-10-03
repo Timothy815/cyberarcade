@@ -9,6 +9,7 @@ import './styles/screens.css';
 import './hub/hub.css';
 import './games/phish/phish.css';
 import './games/password/password.css';
+import './games/invaders/invaders.css';
 
 import { createAudio } from './core/audio';
 import { watchFullscreen } from './core/fullscreen';
