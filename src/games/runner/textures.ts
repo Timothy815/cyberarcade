@@ -12,9 +12,9 @@ const OK = hexToInt(palette.ok);
 const DANGER = hexToInt(palette.danger);
 const WHITE = 0xffffff;
 
-/** Width and height of the gate arch texture; the scene places labels relative to it. */
-export const ARCH_W = 1300;
-export const ARCH_H = 720;
+/** Width and height of the gate arch texture. */
+const ARCH_W = 1300;
+const ARCH_H = 720;
 /** Height of the label panels' centres above the floor. */
 export const LABEL_Y = 520;
 
@@ -58,15 +58,13 @@ export function makeTextures(scene: Phaser.Scene): void {
 
   // Router gate: an arch across all three lanes with one label panel per lane.
   bake(scene, 'arch', ARCH_W, ARCH_H, (g) => {
-    const posts = [
-      [{ x: 14, y: ARCH_H }, { x: 14, y: 14 }, { x: ARCH_W - 14, y: 14 }, { x: ARCH_W - 14, y: ARCH_H }],
-    ];
+    const posts = [{ x: 14, y: ARCH_H }, { x: 14, y: 14 }, { x: ARCH_W - 14, y: 14 }, { x: ARCH_W - 14, y: ARCH_H }];
     for (const [w, a] of GLOW) {
       g.lineStyle(w, YELLOW, a);
-      g.strokePoints(posts[0], false);
+      g.strokePoints(posts, false);
     }
     g.lineStyle(6, YELLOW, 1);
-    g.strokePoints(posts[0], false);
+    g.strokePoints(posts, false);
     const cy = ARCH_H - LABEL_Y;
     for (let lane = 0; lane < 3; lane++) {
       const cx = ARCH_W / 2 + (lane - 1) * 360;

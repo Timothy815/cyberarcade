@@ -221,7 +221,11 @@ test('runner: the first router gate scores when the packet takes the matching la
   if (correct === 0) await page.keyboard.press('ArrowLeft');
   if (correct === 2) await page.keyboard.press('ArrowRight');
   await expect(page.locator('.runner')).toHaveAttribute('data-lane', String(correct));
+  const scoreOf = async () => Number((await page.locator('[data-hud="score"]').textContent())!.replace(/,/g, ''));
+  const before = await scoreOf();
   await expect(page.locator('.pr-flash')).toContainText(/ROUTED \+100/, { timeout: 8000 });
+  // Distance points also accrue, so just check the gate's 100 landed on top of them.
+  expect((await scoreOf()) - before).toBeGreaterThanOrEqual(100);
   await expect(page.locator('[data-hud="gates"]')).toHaveText('1');
   await expect(page.locator('[data-hud="lives"]')).toHaveText('◆◆◆');
   expect(errors).toEqual([]);

@@ -85,7 +85,8 @@ export function createGame(): GameModule {
           }
           if (e.type === 'gameOver') {
             router.classList.remove('is-on');
-            showFlash('CONNECTION LOST', false);
+            // A lethal wrong gate already flashed "PACKET DROPPED" this batch; don't stomp it.
+            if (!events.some((e2) => e2.type === 'gateWrong')) showFlash('CONNECTION LOST', false);
             endTimer = setTimeout(() => ctx.endRun(w.score), END_DELAY_MS);
           }
         }

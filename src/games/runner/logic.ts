@@ -29,6 +29,10 @@ export const FLOOD_CHANCE = 0.35;
 export const NODE_CHANCE = 0.4;
 export const ACK_CHANCE = 0.5;
 export const MAX_DT = 0.05;
+// A fixed substep so the rng is consumed in the same order regardless of frame cadence:
+// spawn() and inClear() decide things at the END of a step, so a variable dt would let
+// different frame rates (or jitter) walk through spawn windows differently and diverge.
+export const FIXED_DT = 1 / 120;
 
 export type Kind = 'flood' | 'node' | 'ack' | 'gate';
 
@@ -82,6 +86,8 @@ export class World {
   private nextRowAt = 0.5;
   private nextGateAt = FIRST_GATE_S;
   private lastGateAt = -Infinity;
+  /** Leftover sim time not yet consumed by a FIXED_DT tick. */
+  private acc = 0;
 
   constructor(
     private readonly rng: Rng = Math.random,
@@ -109,8 +115,18 @@ export class World {
 
   step(rawDt: number): GameEvent[] {
     if (this.over) return [];
-    const dt = Math.min(rawDt, MAX_DT);
     const events: GameEvent[] = [];
+    this.acc += Math.min(rawDt, MAX_DT);
+    // Fixed substeps: however this call's dt is chopped up by the caller, the sim always
+    // advances in FIXED_DT increments, so the rng is consumed in the same order every time.
+    while (this.acc >= FIXED_DT - 1e-9 && !this.over) {
+      this.acc -= FIXED_DT;
+      this.tick(FIXED_DT, events);
+    }
+    return events;
+  }
+
+  private tick(dt: number, events: GameEvent[]): void {
     this.time += dt;
 
     const mult = Math.min(MAX_MULT, SPEED_STEP ** Math.floor(this.time / SPEED_EVERY));
@@ -138,7 +154,6 @@ export class World {
       if (this.over) break;
     }
     this.things = this.things.filter((t) => !t.gone && t.z > DESPAWN_Z);
-    return events;
   }
 
   /** True inside the hazard-free window around a gate. */

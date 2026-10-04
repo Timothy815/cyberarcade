@@ -17,6 +17,7 @@ import {
   WARN_S,
   World,
   type GameEvent,
+  type Kind,
 } from '../../src/games/runner/logic';
 
 const DT = 1 / 60;
@@ -112,7 +113,9 @@ describe('runner world', () => {
   it('warns WARN_S before a gate arrives, once, with the /24 hint only on the first cidr gate', () => {
     const w = quiet();
     const first = makeGate(4, mulberry32(2));
-    w.place('gate', [0, 1, 2], BASE_SPEED * WARN_S + 1, first, 4);
+    // Margin of a full DT (not +1): the fixed 1/120 substep checks the warn window twice per
+    // DT-sized step, so the gate must still be outside WARN_S after the first of those checks.
+    w.place('gate', [0, 1, 2], BASE_SPEED * (WARN_S + DT), first, 4);
     expect(types(w.step(DT))).not.toContain('gateWarn');
     expect(w.step(DT)).toContainEqual({ type: 'gateWarn', gate: first, n: 4, hint: true });
     expect(types(w.step(DT))).not.toContain('gateWarn');
@@ -164,5 +167,49 @@ describe('runner world', () => {
         expect(hazards.filter((h) => h > g.t - CLEAR_BEFORE_S && h < g.t + CLEAR_AFTER_S)).toEqual([]);
       });
     }
+  });
+
+  it('same seed gives identical runs regardless of frame cadence', () => {
+    type Spawn = { kind: Kind; lanes: number[] };
+    type GateLog = { dest: string; correct: number };
+
+    // Plays 200s of sim time with no steering and records every spawn (by kind/lanes) and
+    // every gate warning (by dest/correct); the rng draws must land in the same order no
+    // matter how the caller slices up dt.
+    const run = (nextDt: () => number) => {
+      const w = new World(mulberry32(7));
+      w.lives = 1e9; // no steering means hazards would otherwise end the run early
+      const spawns: Spawn[] = [];
+      const gates: GateLog[] = [];
+      let seen = 0;
+      while (w.time < 200) {
+        const events = w.step(nextDt());
+        for (const e of events) if (e.type === 'gateWarn') gates.push({ dest: e.gate.dest, correct: e.gate.correct });
+        const fresh = w.things.filter((t) => t.id > seen);
+        seen = Math.max(seen, ...w.things.map((t) => t.id));
+        for (const t of fresh) spawns.push({ kind: t.kind, lanes: t.lanes });
+      }
+      return { spawns, gates };
+    };
+
+    const a = run(() => 1 / 60);
+    const b = run(() => 1 / 144);
+    const jitterRng = mulberry32(99);
+    const c = run(() => 1 / 60 + (jitterRng() * 2 - 1) * 0.006); // up to ±6ms
+
+    // Cadences can overshoot the 200s horizon by a tick or two of their own, so compare the
+    // shared prefix: it must still match exactly if the fixed-step sim is cadence-independent.
+    const prefix = <T>(...lists: T[][]): T[][] => {
+      const n = Math.min(...lists.map((l) => l.length));
+      return lists.map((l) => l.slice(0, n));
+    };
+    const [sa, sb, sc] = prefix(a.spawns, b.spawns, c.spawns);
+    const [ga, gb, gc] = prefix(a.gates, b.gates, c.gates);
+
+    expect(ga.length).toBeGreaterThanOrEqual(8);
+    expect(sb).toEqual(sa);
+    expect(sc).toEqual(sa);
+    expect(gb).toEqual(ga);
+    expect(gc).toEqual(ga);
   });
 });
