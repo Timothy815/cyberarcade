@@ -1,6 +1,7 @@
 import type * as Phaser from 'phaser';
 import { hexToInt, palette } from '../../core/theme';
 import { mulberry32 } from '../../core/random';
+import { bake, GLOW, neonCircle, neonPoly, type G, type Pt } from '../phaser-util';
 
 // Every sprite is drawn in code once, at scene start, and baked into a texture.
 // Neon glow is faked with wide, faint strokes under a bright core line, so it costs nothing per frame.
@@ -12,43 +13,6 @@ const OK = hexToInt(palette.ok);
 const DANGER = hexToInt(palette.danger);
 const GREY = hexToInt(palette.grey);
 const WHITE = 0xffffff;
-const DEEP = hexToInt(palette.deep);
-
-type G = Phaser.GameObjects.Graphics;
-type Pt = { x: number; y: number };
-
-const GLOW: [width: number, alpha: number][] = [
-  [16, 0.06],
-  [10, 0.12],
-  [6, 0.25],
-];
-
-/** Draws a closed neon outline: soft glow passes, a dark fill, then a crisp core line. */
-function neonPoly(g: G, pts: Pt[], color: number, fillAlpha = 0.35): void {
-  for (const [w, a] of GLOW) {
-    g.lineStyle(w, color, a);
-    g.strokePoints(pts, true, true);
-  }
-  g.fillStyle(DEEP, 0.9);
-  g.fillPoints(pts, true, true);
-  g.fillStyle(color, fillAlpha);
-  g.fillPoints(pts, true, true);
-  g.lineStyle(3, color, 1);
-  g.strokePoints(pts, true, true);
-}
-
-function neonCircle(g: G, x: number, y: number, r: number, color: number, fillAlpha = 0.35): void {
-  for (const [w, a] of GLOW) {
-    g.lineStyle(w, color, a);
-    g.strokeCircle(x, y, r);
-  }
-  g.fillStyle(DEEP, 0.9);
-  g.fillCircle(x, y, r);
-  g.fillStyle(color, fillAlpha);
-  g.fillCircle(x, y, r);
-  g.lineStyle(3, color, 1);
-  g.strokeCircle(x, y, r);
-}
 
 /** A star outline with `n` points: vertices alternate between radius r1 (tips) and r2 (dips). */
 function star(cx: number, cy: number, n: number, r1: number, r2: number): Pt[] {
@@ -59,14 +23,6 @@ function star(cx: number, cy: number, n: number, r1: number, r2: number): Pt[] {
     pts.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r });
   }
   return pts;
-}
-
-function bake(scene: Phaser.Scene, key: string, w: number, h: number, draw: (g: G) => void): void {
-  if (scene.textures.exists(key)) scene.textures.remove(key);
-  const g = scene.make.graphics({ x: 0, y: 0 }, false);
-  draw(g);
-  g.generateTexture(key, w, h);
-  g.destroy();
 }
 
 function eyes(g: G, cx: number, cy: number, gap: number, r: number): void {

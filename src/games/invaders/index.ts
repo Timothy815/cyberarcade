@@ -3,12 +3,12 @@ import type { SfxName } from '../../core/audio';
 import type { GameContext, GameModule } from '../../core/types';
 import { el } from '../../core/ui/dom';
 import { createHud } from '../../core/ui/hud';
+import { destroyGame } from '../phaser-util';
 import { H, W, World, type Controls, type GameEvent } from './logic';
 import { InvadersScene } from './scene';
 
 const END_DELAY_MS = 1500; // let the final explosion play before game over
 const BANNER_MS = 1800;
-const MAX_CONTEXT_WAIT_FRAMES = 60;
 
 const SFX: Partial<Record<GameEvent['type'], SfxName>> = {
   shoot: 'shoot',
@@ -22,28 +22,6 @@ const SFX: Partial<Record<GameEvent['type'], SfxName>> = {
   waveStart: 'select',
   gameOver: 'explode',
 };
-
-/**
- * Destroys a Phaser game completely. Phaser's destroy() runs on the game's next frame and never
- * releases the WebGL context, and Chrome only allows ~16 live contexts, so a kiosk that starts
- * hundreds of runs a day must free each one by hand once Phaser has finished with it.
- */
-function destroyGame(game: Phaser.Game): void {
-  const gl = (game.renderer as Partial<Phaser.Renderer.WebGL.WebGLRenderer> | null)?.gl ?? null;
-  game.destroy(true);
-  if (!gl) return;
-  // pendingDestroy is public in Phaser's source but missing from its typings.
-  const pending = () => (game as unknown as { pendingDestroy: boolean }).pendingDestroy;
-  let frames = 0;
-  const release = () => {
-    if (pending() && ++frames < MAX_CONTEXT_WAIT_FRAMES) {
-      requestAnimationFrame(release);
-      return;
-    }
-    gl.getExtension('WEBGL_lose_context')?.loseContext();
-  };
-  requestAnimationFrame(release);
-}
 
 export function createGame(): GameModule {
   let root: HTMLElement | null = null;
