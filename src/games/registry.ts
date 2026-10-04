@@ -52,6 +52,7 @@ export const CABINETS: Cabinet[] = [
     tagline: 'You are the firewall. Check each packet against the rulebook: allow or deny?',
     category: 'learn',
     controls: [['←', 'Allow'], ['→', 'Deny']],
+    load: () => import('./port/index').then((m) => m.createGame()),
   },
   {
     kind: 'game',

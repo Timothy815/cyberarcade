@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { ITEMS } from '../../src/games/phish/items';
+import { evaluate, type Action, type Proto, type Rule } from '../../src/games/port/logic';
 import { boot, trackErrors } from './helpers';
 
 test.beforeEach(async ({ page }) => {
@@ -99,6 +100,72 @@ test('invaders: Phaser boots, firing scores, Esc tears the canvas down', async (
   await page.keyboard.press('Escape');
   await expect(page.locator('.game-layer')).toBeHidden();
   await expect(page.locator('canvas')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+/** Rebuilds the rulebook and packet from the page's data attributes and asks the real firewall logic. */
+async function portAnswer(page: Page): Promise<Action> {
+  const rows = await page.locator('.pg-rule').evaluateAll((els) => els.map((e) => ({ ...(e as HTMLElement).dataset })));
+  const rules: Rule[] = rows
+    .filter((d) => d.fallback === undefined)
+    .map((d) => ({
+      action: d.action as Action,
+      ...(d.port ? { port: Number(d.port) } : {}),
+      ...(d.proto ? { proto: d.proto as Proto } : {}),
+      ...(d.net ? { net: d.net } : {}),
+    }));
+  const fallback = rows.find((d) => d.fallback !== undefined)!.action as Action;
+  const card = await page.locator('.pg-packet').evaluate((e) => ({ ...(e as HTMLElement).dataset }));
+  return evaluate({ rules, fallback }, { src: card.src!, port: Number(card.port), proto: card.proto as Proto }).action;
+}
+
+test('port: right calls score, wrong calls explain the rule, three strikes end the run', async ({ page }) => {
+  const errors = trackErrors(page);
+  await boot(page);
+  await launch(page, 'port');
+  const card = page.locator('.pg-packet');
+  await expect(card).toHaveClass(/is-in/);
+  await expect(page.locator('.pg-rule[data-fallback]')).toHaveCount(1);
+
+  await page.keyboard.press((await portAnswer(page)) === 'allow' ? 'ArrowLeft' : 'ArrowRight');
+  await expect(page.locator('.pg-verdict')).toContainText('CORRECT');
+  await expect(page.locator('.pg-rule.is-hit')).toHaveCount(1);
+  await expect(page.locator('[data-hud="score"]')).not.toHaveText('0');
+
+  // A click on the on-screen button counts too.
+  await expect(card).toHaveClass(/is-in/);
+  await page.locator((await portAnswer(page)) === 'allow' ? '.pg-btn.is-allow' : '.pg-btn.is-deny').click();
+  await expect(page.locator('.pg-verdict')).toContainText('CORRECT');
+
+  for (let i = 0; i < 3; i++) {
+    await expect(card).toHaveClass(/is-in/); // next packet is up
+    await page.keyboard.press((await portAnswer(page)) === 'allow' ? 'ArrowRight' : 'ArrowLeft');
+    await expect(page.locator('.pg-verdict')).toContainText('WRONG');
+    await expect(page.locator('.pg-why')).toContainText(/matched first|default applies/);
+    await expect(page.locator('.pg-rule.is-hit')).toHaveCount(1);
+  }
+  await expect(page.locator('.game-over .final-score')).toBeVisible({ timeout: 5000 });
+  expect(errors).toEqual([]);
+});
+
+test('port: a full shift brings a new rulebook', async ({ page }) => {
+  test.setTimeout(60_000);
+  const errors = trackErrors(page);
+  await boot(page);
+  await launch(page, 'port');
+  const card = page.locator('.pg-packet');
+  await expect(page.locator('.port')).toHaveAttribute('data-shift', '1');
+  const firstRules = await page.locator('.pg-rule').count();
+  for (let i = 0; i < 8; i++) {
+    await expect(card).toHaveClass(/is-in/);
+    await page.keyboard.press((await portAnswer(page)) === 'allow' ? 'ArrowLeft' : 'ArrowRight');
+    await expect(page.locator('.pg-verdict')).toContainText('CORRECT');
+  }
+  await expect(page.locator('.pg-banner')).toContainText('SHIFT 2');
+  await expect(page.locator('.port')).toHaveAttribute('data-shift', '2');
+  expect(await page.locator('.pg-rule').count()).toBeGreaterThan(firstRules);
+  await expect(page.locator('[data-hud="shift"]')).toHaveText('2');
+  await expect(card).toHaveClass(/is-in/, { timeout: 5000 });
   expect(errors).toEqual([]);
 });
 
