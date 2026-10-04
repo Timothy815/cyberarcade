@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { SNIPPETS } from '../../src/games/bughunt/snippets';
 import { ITEMS } from '../../src/games/phish/items';
 import { evaluate, type Action, type Proto, type Rule } from '../../src/games/port/logic';
 import { boot, trackErrors } from './helpers';
@@ -169,7 +170,54 @@ test('port: a full shift brings a new rulebook', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('20 launch/exit cycles across the three games leave nothing behind', async ({ page }) => {
+/** The current Bug Hunt snippet, looked up from the panel's data-id. */
+async function bugSnippet(page: Page) {
+  const id = await page.locator('.bh-panel').getAttribute('data-id');
+  return SNIPPETS.find((s) => s.id === id)!;
+}
+
+test('bughunt: right picks score, misses show the fix, three strikes end the run', async ({ page }) => {
+  test.setTimeout(60_000);
+  const errors = trackErrors(page);
+  await boot(page);
+  await launch(page, 'bughunt');
+  const panel = page.locator('.bh-panel');
+  await expect(panel).toHaveClass(/is-in/);
+
+  // Keyboard: walk the cursor down to the buggy line and squash it.
+  const first = await bugSnippet(page);
+  await expect(page.locator('.bh-line[data-line="0"]')).toHaveClass(/is-cursor/);
+  for (let i = 0; i < first.bug; i++) await page.keyboard.press('ArrowDown');
+  await expect(page.locator(`.bh-line[data-line="${first.bug}"]`)).toHaveClass(/is-cursor/);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.bh-verdict')).toContainText('SQUASHED');
+  await expect(page.locator('.bh-line.is-fix')).toHaveCount(1);
+  await expect(page.locator('.bh-line.is-fix')).toHaveText(new RegExp(first.fix.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  await expect(page.locator('[data-hud="score"]')).not.toHaveText('0');
+  await expect(page.locator('[data-hud="bugs"]')).toHaveText('1');
+
+  // Mouse: clicking the buggy line counts too.
+  await expect(panel).toHaveClass(/is-in/, { timeout: 5000 });
+  const second = await bugSnippet(page);
+  await page.locator(`.bh-line[data-line="${second.bug}"]`).click();
+  await expect(page.locator('.bh-verdict')).toContainText('SQUASHED');
+
+  for (let i = 0; i < 3; i++) {
+    await expect(panel).toHaveClass(/is-in/, { timeout: 5000 }); // next snippet is up
+    const s = await bugSnippet(page);
+    const wrong = (s.bug + 1) % s.code.length;
+    await page.locator(`.bh-line[data-line="${wrong}"]`).click();
+    await expect(page.locator('.bh-verdict')).toContainText(`MISSED — LINE ${s.bug + 1}`);
+    await expect(page.locator('.bh-line.is-miss')).toHaveCount(1);
+    await expect(page.locator(`.bh-line[data-line="${s.bug}"]`)).toHaveClass(/is-bug/);
+    await expect(page.locator('.bh-tag')).not.toBeEmpty();
+    await expect(page.locator('.bh-why')).toHaveText(s.why);
+  }
+  await expect(page.locator('.game-over .final-score')).toBeVisible({ timeout: 6000 });
+  expect(errors).toEqual([]);
+});
+
+test('20 launch/exit cycles across the five games leave nothing behind', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = trackErrors(page);
   // Records every WebGL/WebGL2 context any canvas hands out, so a regression in invaders'
@@ -186,7 +234,7 @@ test('20 launch/exit cycles across the three games leave nothing behind', async 
     } as typeof HTMLCanvasElement.prototype.getContext;
   });
   await boot(page, '?selftest');
-  const games = ['phish', 'password', 'invaders'];
+  const games = ['phish', 'password', 'invaders', 'port', 'bughunt'];
   const cycle = async (id: string) => {
     await launch(page, id);
     await expect(page.locator('.game-root')).toHaveCount(1);

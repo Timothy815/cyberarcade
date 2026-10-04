@@ -11,6 +11,7 @@ import './games/phish/phish.css';
 import './games/password/password.css';
 import './games/invaders/invaders.css';
 import './games/port/port.css';
+import './games/bughunt/bughunt.css';
 
 import { createAudio } from './core/audio';
 import { watchFullscreen } from './core/fullscreen';

@@ -61,6 +61,7 @@ export const CABINETS: Cabinet[] = [
     tagline: 'Every Python snippet hides one bug. Find the broken line before time runs out.',
     category: 'learn',
     controls: [['↑ ↓', 'Pick line'], ['ENTER', 'Squash']],
+    load: () => import('./bughunt/index').then((m) => m.createGame()),
   },
   {
     kind: 'link',
