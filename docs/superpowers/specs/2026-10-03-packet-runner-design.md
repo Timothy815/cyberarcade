@@ -29,7 +29,7 @@ Controls: ← → or A/D to switch lanes. Esc exits, through the shell as usual.
 - Spawn density rises with speed.
 
 ### Router gates
-- A gate arrives every 15–20 s of run time.
+- A gate arrives every 15–20 s of run time. **Warm-up:** the first gate spawns at 4 s, and no hazards spawn before it (ACK rows only), so every run opens with a calm CIDR lesson.
 - About 3 s before a gate reaches the player, a **ROUTER AHEAD** banner shows `DEST <ip>`. Each lane's label appears on the incoming gate arch.
 - The spawner keeps a clear zone of about 2 s before every gate and about 0.5 s after it. A gate is never combined with a forced hazard hit.
 - When the gate reaches the player, the player's current lane is checked:
@@ -47,7 +47,7 @@ Controls: ← → or A/D to switch lanes. Esc exits, through the shell as usual.
 ### Scoring and the end of a run
 - Score sources: distance (+1 per 100 ms of run time), ACK tokens and gates.
 - At 0 lives the run ends. After a short end delay, as in Invaders, it calls `ctx.endRun(score)`.
-- HUD: score, lives and gate count.
+- HUD: score, lives and routed count (ROUTED: gates passed correctly).
 
 ## 3. Architecture
 
@@ -55,13 +55,13 @@ Phaser 3.90, following the same split as Malware Invaders. Rules live in pure lo
 
 | File | Responsibility |
 |---|---|
-| `src/games/runner/logic.ts` | Pure `World`. No Phaser and no DOM. It has `step(dtMs, controls)` and `steer(dir)`. It returns `GameEvent[]` (`hit`, `ack`, `gateRight`, `gateWrong`, `gateWarn`, `speedUp`, `gameOver`). It holds lane, speed, objects `{kind, lanes, z}`, the pending gate, lives, score and the invulnerability timer. It takes an `Rng`. |
+| `src/games/runner/logic.ts` | Pure `World`. No Phaser and no DOM. It has `step(dt)` and `steer(dir)`; steering only happens through `steer`. It returns `GameEvent[]` (`hit`, `ack`, `gateRight`, `gateWrong`, `gateWarn`, `speedUp`, `gameOver`). It holds lane, speed, objects `{kind, lanes, z}`, the pending gate, lives, score and the invulnerability timer. It takes an `Rng`. |
 | `src/games/runner/gates.ts` | `makeGate(n: number, rng: Rng): Gate`, where `Gate = {dest, labels: [string, string, string], correct: 0\|1\|2, tier: 'prefix'\|'cidr'\|'near'}`. Matching uses `inNet` / `ipIn` / `parseIp` imported from `src/games/port/logic.ts`, so the IP rules exist in one place. A prefix label `a.b.c.x` is treated as `a.b.c.0/24`. |
 | `src/games/runner/scene.ts` | `RunnerScene`. It projects `(lane, z)` to the screen with `scale = f / (z + f)` toward a vanishing point. It draws neon tunnel rings streaming toward the camera, lane lines, the packet, obstacles and gate arches with label text. Every frame mirrors the World. |
-| `src/games/runner/textures.ts` | Generated glow textures for the packet, ACK, flood and node. No image files. |
+| `src/games/runner/textures.ts` | Generated glow textures for the packet, ACK, flood, node and gate arch, built with the shared helpers in `phaser-util.ts`. No image files. |
 | `src/games/runner/index.ts` | `createGame()`, mount and unmount. Input goes through `ctx.input.onKey` (← → A D). The DOM overlays are the HUD (`createHud`), the ROUTER AHEAD banner (dest + hint) and the result flashes. It maps events to `ctx.audio.sfx`. The game root exposes `data-correct` and `data-lane` for e2e. |
 | `src/games/runner/runner.css` | Banner, flash and HUD styling, using the theme tokens. |
-| `src/games/phaser-util.ts` | **Targeted refactor.** `destroyGame()` (the WebGL-context release) moves here from `invaders/index.ts`, and both games import it. Invaders' behavior is unchanged. |
+| `src/games/phaser-util.ts` | **Targeted refactor.** `destroyGame()` (the WebGL-context release) moves here from `invaders/index.ts`, together with the neon texture helpers (`GLOW`, `neonPoly`, `neonCircle`, `bake`) from `invaders/textures.ts`. Both games import them. Invaders' behavior is unchanged. |
 | `src/games/registry.ts` | The `runner` cabinet gets `load: () => import('./runner/index').then((m) => m.createGame())`, and its controls become `['← → / A D', 'Switch lane']`. |
 
 ### Determinism
@@ -93,6 +93,7 @@ Phaser 3.90, following the same split as Malware Invaders. Rules live in pure lo
 - A seeded run reaches the first gate, steers to `data-correct` and sees the score jump by 100.
 - `runner` is added to the existing 20-cycle mount/unmount leak loop and its WebGL-context tracker.
 - The existing invaders e2e still passes after the `destroyGame` move.
+- The "coming soon" unit and e2e tests used the `runner` cabinet. They switch to `defense` (Firewall Defense, still unbuilt).
 
 ## 5. Out of scope
 - Power-ups, a boss and touch controls.
