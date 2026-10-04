@@ -27,7 +27,7 @@ Each tower can be upgraded once. An upgrade costs `round(1.5 × build cost)`. Se
 | Tower | Cost | Effect | Upgrade |
 |---|---|---|---|
 | Firewall | 50 | Shoots one target at a steady rate. It picks the attacker furthest along the path that is in range and targetable. | Faster fire rate and more damage |
-| IDS | 40 | Does no damage. Stealth attackers inside its range become targetable. | Bigger range |
+| IDS | 40 | Does no damage. Stealth attackers that pass through its range become targetable for the rest of their trip. | Bigger range |
 | Honeypot | 60 | Holds one brute-force bot in range for 2 s; the held bot doesn't move. Other attackers in range are slowed by 30%. | Holds 2 bots at once |
 | Rate Limiter | 70 | Slows every attacker in range by 50%, and DDoS packets by 70%. | Bigger range |
 
@@ -128,7 +128,7 @@ Mounting and unmounting repeatedly must not leak WebGL contexts.
 - Upgrade costs work, upgrades are limited to one, and sell refunds 60%.
 - Attackers follow the path, and a leak costs integrity by type.
 - A Firewall targets the attacker furthest along and never targets an unrevealed stealth attacker.
-- An IDS reveal makes a stealth attacker killable.
+- An IDS reveal makes a stealth attacker killable, and the reveal sticks.
 - A Honeypot holds a brute-force bot for 2 s, only once per honeypot, and slows other attackers by 30%.
 - The Rate Limiter slows by 50%, or 70% for DDoS, and slows don't stack.
 - Kill credits and score, and wave-clear credits and score.

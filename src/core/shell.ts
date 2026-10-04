@@ -39,7 +39,7 @@ export function createShell(opts: ShellOptions): Shell {
       let game: GameModule | null = null;
       let root: Stage | null = null;
       const scoped = createScopedInput(input);
-      const idle = createIdleTimer(timing.gameIdleMs, () => finish({ kind: 'exit' }));
+      const idle = createIdleTimer(cab.idleMs ?? timing.gameIdleMs, () => finish({ kind: 'exit' }));
       const hideLoading = loadingScreen(ui.el);
 
       const onError = (e: ErrorEvent) => finish({ kind: 'crash', error: e.error ?? e.message });

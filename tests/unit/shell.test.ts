@@ -156,6 +156,20 @@ describe('shell', () => {
     expect(onExit).toHaveBeenCalledTimes(1);
   });
 
+  it('a cabinet with its own idleMs ignores the default idle timeout and is exited after its own', async () => {
+    const game = fakeGame();
+    const cab = { ...cabFor(game), idleMs: 420_000 };
+    const done = shell.launch(cab, true);
+    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(60_000); // past the default gameIdleMs
+    expect(shell.state).toBe('playing');
+    expect(game.unmounts).toBe(0);
+    await vi.advanceTimersByTimeAsync(360_000); // reaches its own 420_000 ms
+    await done;
+    expect(game.unmounts).toBe(1);
+    expect(onExit).toHaveBeenCalledTimes(1);
+  });
+
   it('a cabinet whose load never resolves returns to the hub after 15 s', async () => {
     const cab = cabFor(fakeGame());
     cab.load = () => new Promise<GameModule>(() => {}); // never resolves

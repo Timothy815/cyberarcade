@@ -46,6 +46,7 @@ export const CABINETS: Cabinet[] = [
     category: 'arcade',
     controls: [['MOUSE', 'Build & upgrade'], ['1–4 / N', 'Tower / Next wave']],
     load: () => import('./defense/index').then((m) => m.createGame()),
+    idleMs: 420_000, // waves play on their own; longer than a full run
   },
   {
     kind: 'game',

@@ -323,10 +323,10 @@ export class World {
     }
   }
 
-  /** Stealth attackers are targetable only while an IDS covers them. */
+  /** Stealth attackers become targetable once an IDS spots them, and stay that way. */
   private reveal(): void {
     for (const a of this.attackers) {
-      if (a.kind !== 'stealth') continue;
+      if (a.kind !== 'stealth' || a.revealed) continue;
       a.revealed = this.towers.some((t, pad) => t?.kind === 'ids' && this.inRange(pad, a));
     }
   }

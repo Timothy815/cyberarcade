@@ -132,6 +132,17 @@ describe('defense towers', () => {
     expect(kills).toEqual([expect.objectContaining({ kind: 'stealth', credits: 8, points: 80 })]);
   });
 
+  it('an IDS reveal sticks: a stealth attacker stays revealed after leaving that IDS range, so a firewall elsewhere can hit it', () => {
+    const w = manual();
+    w.build(0, 'ids'); // level 1, range 220, covers most of the first trace segment
+    w.build(2, 'firewall'); // covers a stretch of the second trace segment, well past pad 0's range
+    const sneak = w.spawn('stealth', 200);
+    run(w, 1); // ~190 px, past the point where pad 0 still covers it
+    expect(sneak.revealed).toBe(true);
+    const shots = of(run(w, 1.5), 'shot');
+    expect(shots.some((s) => s.pad === 2)).toBe(true);
+  });
+
   it('a honeypot holds a brute-force bot for 2 s, once, then slows it by 30%', () => {
     const w = manual();
     w.build(0, 'honeypot');
