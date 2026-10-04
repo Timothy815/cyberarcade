@@ -50,6 +50,7 @@
 .pg-rule:nth-child(6) { animation-delay: 0.25s; }
 .pg-rule:nth-child(7) { animation-delay: 0.3s; }
 .pg-rule:nth-child(8) { animation-delay: 0.35s; }
+.pg-rule:nth-child(9) { animation-delay: 0.4s; }
 @keyframes pg-rule-in {
   from { opacity: 0; transform: translateX(-30px); }
 }

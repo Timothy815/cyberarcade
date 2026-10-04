@@ -67,6 +67,7 @@ export function createGame(): GameModule {
           ...s.code.map((line, i) => {
             const row = el('div.bh-line', { 'data-line': i }, el('span.bh-n', {}, String(i + 1)), codeSpan(line));
             row.addEventListener('click', () => {
+              if (busy) return; // during the post-answer pause the fix row has shifted the indexes
               moveCursor(i);
               squash(i);
             });

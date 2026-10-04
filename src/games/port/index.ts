@@ -43,7 +43,7 @@ export function createGame(): GameModule {
         {},
         el('div.pg-packet-title', {}, 'INCOMING PACKET'),
         el('div.pg-field', {}, el('span.pg-label', {}, 'FROM'), src),
-        el('div.pg-field', {}, el('span.pg-label', {}, 'PORT'), port, service),
+        el('div.pg-field', {}, el('span.pg-label', {}, 'TO PORT'), port, service),
         el('div.pg-field', {}, el('span.pg-label', {}, 'PROTOCOL'), proto),
       );
       const bar = el('div.pg-timer-fill');
