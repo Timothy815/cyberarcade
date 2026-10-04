@@ -231,6 +231,50 @@ test('runner: the first router gate scores when the packet takes the matching la
   expect(errors).toEqual([]);
 });
 
+test('defense: build a firewall, send wave 1, the score rises, Esc tears the canvas down', async ({ page }) => {
+  const errors = trackErrors(page);
+  await boot(page, '?seed=1');
+  await launch(page, 'defense');
+  const root = page.locator('.defense');
+  await expect(page.locator('.fd-canvas canvas')).toHaveCount(1);
+  await expect(root).toHaveAttribute('data-phase', 'build');
+  await expect(page.locator('[data-hud="credits"]')).toHaveText('120');
+  await page.locator('[data-pad="1"]').click();
+  await page.locator('.fd-build[data-kind="firewall"]').click();
+  await expect(page.locator('[data-pad="1"]')).toHaveAttribute('data-tower', 'firewall');
+  await expect(page.locator('[data-hud="credits"]')).not.toHaveText('120');
+  await page.locator('[data-pad="0"]').click();
+  await page.keyboard.press('1');
+  await expect(page.locator('[data-pad="0"]')).toHaveAttribute('data-tower', 'firewall');
+  await page.keyboard.press('n');
+  await expect(root).toHaveAttribute('data-phase', 'wave');
+  await expect(page.locator('[data-hud="score"]')).not.toHaveText('0', { timeout: 30_000 });
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.game-layer')).toBeHidden();
+  await expect(page.locator('canvas')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('defense: a seeded run with firewalls clears wave 1 and starts wave 2', async ({ page }) => {
+  test.setTimeout(90_000);
+  const errors = trackErrors(page);
+  await boot(page, '?seed=2');
+  await launch(page, 'defense');
+  const root = page.locator('.defense');
+  for (const pad of ['0', '1']) {
+    await page.locator(`[data-pad="${pad}"]`).click();
+    await page.keyboard.press('1');
+    await expect(page.locator(`[data-pad="${pad}"]`)).toHaveAttribute('data-tower', 'firewall');
+  }
+  await page.keyboard.press('n');
+  await expect(root).toHaveAttribute('data-wave', '1');
+  await expect(root).toHaveAttribute('data-phase', 'wave');
+  await expect(root).toHaveAttribute('data-phase', 'build', { timeout: 60_000 });
+  await page.keyboard.press('n');
+  await expect(root).toHaveAttribute('data-wave', '2');
+  expect(errors).toEqual([]);
+});
+
 /** Rebuilds the rulebook and packet from the page's data attributes and asks the real firewall logic. */
 async function portAnswer(page: Page): Promise<Action> {
   const rows = await page.locator('.pg-rule').evaluateAll((els) => els.map((e) => ({ ...(e as HTMLElement).dataset })));
@@ -344,7 +388,7 @@ test('bughunt: right picks score, misses show the fix, three strikes end the run
   expect(errors).toEqual([]);
 });
 
-test('20 launch/exit cycles across the six games leave nothing behind', async ({ page }) => {
+test('20 launch/exit cycles across the seven games leave nothing behind', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = trackErrors(page);
   // Records every WebGL/WebGL2 context any canvas hands out, so a regression in the Phaser
@@ -361,7 +405,7 @@ test('20 launch/exit cycles across the six games leave nothing behind', async ({
     } as typeof HTMLCanvasElement.prototype.getContext;
   });
   await boot(page, '?selftest');
-  const games = ['phish', 'password', 'invaders', 'port', 'bughunt', 'runner'];
+  const games = ['phish', 'password', 'invaders', 'port', 'bughunt', 'runner', 'defense'];
   const cycle = async (id: string) => {
     await launch(page, id);
     await expect(page.locator('.game-root')).toHaveCount(1);

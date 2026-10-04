@@ -19,13 +19,14 @@ test('arrow keys rotate the carousel with wraparound', async ({ page }) => {
   await expect(page.locator('.cabinet.is-center')).toHaveAttribute('data-id', 'classic');
 });
 
-test('a coming-soon cabinet shakes instead of launching', async ({ page }) => {
+test('Firewall Defense launches from the carousel', async ({ page }) => {
   await boot(page);
   for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowRight');
   await expect(page.locator('.cabinet.is-center')).toHaveAttribute('data-id', 'defense');
   await page.keyboard.press('Enter');
-  await expect(page.locator('.cabinet.is-center')).toHaveClass(/shake/);
-  await expect(page.locator('.title-card')).toHaveCount(0);
+  await expect(page.locator('.title-card')).toContainText('Firewall Defense');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.defense canvas')).toHaveCount(1);
 });
 
 test('M toggles the mute indicator', async ({ page }) => {

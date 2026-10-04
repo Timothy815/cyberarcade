@@ -44,7 +44,8 @@ export const CABINETS: Cabinet[] = [
     title: 'Firewall Defense',
     tagline: 'Place firewalls, IDS sensors and honeypots. Stop the botnet before it hits the server.',
     category: 'arcade',
-    controls: [['MOUSE', 'Place & upgrade']],
+    controls: [['MOUSE', 'Build & upgrade'], ['1–4 / N', 'Tower / Next wave']],
+    load: () => import('./defense/index').then((m) => m.createGame()),
   },
   {
     kind: 'game',
