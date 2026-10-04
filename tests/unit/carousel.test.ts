@@ -54,8 +54,12 @@ describe('carousel', () => {
   });
 
   it('marks unbuilt games COMING SOON and shows the Classic note', () => {
-    const { c } = make();
+    // Every real game is built now, so an unbuilt one is faked to keep COMING SOON covered.
+    const unbuilt = CABINETS.map((cab) => (cab.kind === 'game' && cab.id === 'defense' ? { ...cab, load: undefined } : cab));
+    const c = createCarousel(unbuilt, { onActivate: vi.fn(), topScore: () => '' });
+    document.body.append(c.el);
     expect(c.el.querySelector('[data-id="defense"] .soon')).not.toBeNull();
+    expect(c.el.querySelector('[data-id="phish"] .soon')).toBeNull();
     expect(c.el.querySelector('[data-id="classic"] .cab-note')?.textContent).toContain('Alt+');
     c.el.remove();
   });

@@ -36,6 +36,8 @@ export interface GameCabinet extends CabinetBase {
   controls: [string, string][];
   /** Missing while the game is still being built: the hub shows COMING SOON. */
   load?: () => Promise<GameModule>;
+  /** Overrides timing.gameIdleMs for games that play on without input. */
+  idleMs?: number;
 }
 
 export interface LinkCabinet extends CabinetBase {
