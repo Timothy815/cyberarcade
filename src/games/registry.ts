@@ -52,6 +52,7 @@ export const CABINETS: Cabinet[] = [
     tagline: 'You are the firewall. Check each packet against the rulebook: allow or deny?',
     category: 'learn',
     controls: [['←', 'Allow'], ['→', 'Deny']],
+    load: () => import('./port/index').then((m) => m.createGame()),
   },
   {
     kind: 'game',
@@ -60,6 +61,7 @@ export const CABINETS: Cabinet[] = [
     tagline: 'Every Python snippet hides one bug. Find the broken line before time runs out.',
     category: 'learn',
     controls: [['↑ ↓', 'Pick line'], ['ENTER', 'Squash']],
+    load: () => import('./bughunt/index').then((m) => m.createGame()),
   },
   {
     kind: 'link',

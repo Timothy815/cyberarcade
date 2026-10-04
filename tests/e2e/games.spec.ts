@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
+import { SNIPPETS } from '../../src/games/bughunt/snippets';
 import { ITEMS } from '../../src/games/phish/items';
+import { evaluate, type Action, type Proto, type Rule } from '../../src/games/port/logic';
 import { boot, trackErrors } from './helpers';
 
 test.beforeEach(async ({ page }) => {
@@ -102,7 +104,120 @@ test('invaders: Phaser boots, firing scores, Esc tears the canvas down', async (
   expect(errors).toEqual([]);
 });
 
-test('20 launch/exit cycles across the three games leave nothing behind', async ({ page }) => {
+/** Rebuilds the rulebook and packet from the page's data attributes and asks the real firewall logic. */
+async function portAnswer(page: Page): Promise<Action> {
+  const rows = await page.locator('.pg-rule').evaluateAll((els) => els.map((e) => ({ ...(e as HTMLElement).dataset })));
+  const rules: Rule[] = rows
+    .filter((d) => d.fallback === undefined)
+    .map((d) => ({
+      action: d.action as Action,
+      ...(d.port ? { port: Number(d.port) } : {}),
+      ...(d.proto ? { proto: d.proto as Proto } : {}),
+      ...(d.net ? { net: d.net } : {}),
+    }));
+  const fallback = rows.find((d) => d.fallback !== undefined)!.action as Action;
+  const card = await page.locator('.pg-packet').evaluate((e) => ({ ...(e as HTMLElement).dataset }));
+  return evaluate({ rules, fallback }, { src: card.src!, port: Number(card.port), proto: card.proto as Proto }).action;
+}
+
+test('port: right calls score, wrong calls explain the rule, three strikes end the run', async ({ page }) => {
+  const errors = trackErrors(page);
+  await boot(page);
+  await launch(page, 'port');
+  const card = page.locator('.pg-packet');
+  await expect(card).toHaveClass(/is-in/);
+  await expect(page.locator('.pg-rule[data-fallback]')).toHaveCount(1);
+
+  await page.keyboard.press((await portAnswer(page)) === 'allow' ? 'ArrowLeft' : 'ArrowRight');
+  await expect(page.locator('.pg-verdict')).toContainText('CORRECT');
+  await expect(page.locator('.pg-rule.is-hit')).toHaveCount(1);
+  await expect(page.locator('[data-hud="score"]')).not.toHaveText('0');
+
+  // A click on the on-screen button counts too.
+  await expect(card).toHaveClass(/is-in/);
+  await page.locator((await portAnswer(page)) === 'allow' ? '.pg-btn.is-allow' : '.pg-btn.is-deny').click();
+  await expect(page.locator('.pg-verdict')).toContainText('CORRECT');
+
+  for (let i = 0; i < 3; i++) {
+    await expect(card).toHaveClass(/is-in/); // next packet is up
+    await page.keyboard.press((await portAnswer(page)) === 'allow' ? 'ArrowRight' : 'ArrowLeft');
+    await expect(page.locator('.pg-verdict')).toContainText('WRONG');
+    await expect(page.locator('.pg-why')).toContainText(/matched first|default applies/);
+    await expect(page.locator('.pg-rule.is-hit')).toHaveCount(1);
+  }
+  await expect(page.locator('.game-over .final-score')).toBeVisible({ timeout: 5000 });
+  expect(errors).toEqual([]);
+});
+
+test('port: a full shift brings a new rulebook', async ({ page }) => {
+  test.setTimeout(60_000);
+  const errors = trackErrors(page);
+  await boot(page);
+  await launch(page, 'port');
+  const card = page.locator('.pg-packet');
+  await expect(page.locator('.port')).toHaveAttribute('data-shift', '1');
+  const firstRules = await page.locator('.pg-rule').count();
+  for (let i = 0; i < 8; i++) {
+    await expect(card).toHaveClass(/is-in/);
+    await page.keyboard.press((await portAnswer(page)) === 'allow' ? 'ArrowLeft' : 'ArrowRight');
+    await expect(page.locator('.pg-verdict')).toContainText('CORRECT');
+  }
+  await expect(page.locator('.pg-banner')).toContainText('SHIFT 2');
+  await expect(page.locator('.port')).toHaveAttribute('data-shift', '2');
+  expect(await page.locator('.pg-rule').count()).toBeGreaterThan(firstRules);
+  await expect(page.locator('[data-hud="shift"]')).toHaveText('2');
+  await expect(card).toHaveClass(/is-in/, { timeout: 5000 });
+  expect(errors).toEqual([]);
+});
+
+/** The current Bug Hunt snippet, looked up from the panel's data-id. */
+async function bugSnippet(page: Page) {
+  const id = await page.locator('.bh-panel').getAttribute('data-id');
+  return SNIPPETS.find((s) => s.id === id)!;
+}
+
+test('bughunt: right picks score, misses show the fix, three strikes end the run', async ({ page }) => {
+  test.setTimeout(60_000);
+  const errors = trackErrors(page);
+  await boot(page);
+  await launch(page, 'bughunt');
+  const panel = page.locator('.bh-panel');
+  await expect(panel).toHaveClass(/is-in/);
+
+  // Keyboard: walk the cursor down to the buggy line and squash it.
+  const first = await bugSnippet(page);
+  await expect(page.locator('.bh-line[data-line="0"]')).toHaveClass(/is-cursor/);
+  for (let i = 0; i < first.bug; i++) await page.keyboard.press('ArrowDown');
+  await expect(page.locator(`.bh-line[data-line="${first.bug}"]`)).toHaveClass(/is-cursor/);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.bh-verdict')).toContainText('SQUASHED');
+  await expect(page.locator('.bh-line.is-fix')).toHaveCount(1);
+  await expect(page.locator('.bh-line.is-fix')).toHaveText(new RegExp(first.fix.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  await expect(page.locator('[data-hud="score"]')).not.toHaveText('0');
+  await expect(page.locator('[data-hud="bugs"]')).toHaveText('1');
+
+  // Mouse: clicking the buggy line counts too.
+  await expect(panel).toHaveClass(/is-in/, { timeout: 5000 });
+  const second = await bugSnippet(page);
+  await page.locator(`.bh-line[data-line="${second.bug}"]`).click();
+  await expect(page.locator('.bh-verdict')).toContainText('SQUASHED');
+
+  for (let i = 0; i < 3; i++) {
+    await expect(panel).toHaveClass(/is-in/, { timeout: 5000 }); // next snippet is up
+    const s = await bugSnippet(page);
+    const wrong = (s.bug + 1) % s.code.length;
+    await page.locator(`.bh-line[data-line="${wrong}"]`).click();
+    await expect(page.locator('.bh-verdict')).toContainText(`MISSED — LINE ${s.bug + 1}`);
+    await expect(page.locator('.bh-line.is-miss')).toHaveCount(1);
+    await expect(page.locator(`.bh-line[data-line="${s.bug}"]`)).toHaveClass(/is-bug/);
+    await expect(page.locator('.bh-tag')).not.toBeEmpty();
+    await expect(page.locator('.bh-why')).toHaveText(s.why);
+  }
+  await expect(page.locator('.game-over .final-score')).toBeVisible({ timeout: 6000 });
+  expect(errors).toEqual([]);
+});
+
+test('20 launch/exit cycles across the five games leave nothing behind', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = trackErrors(page);
   // Records every WebGL/WebGL2 context any canvas hands out, so a regression in invaders'
@@ -119,7 +234,7 @@ test('20 launch/exit cycles across the three games leave nothing behind', async 
     } as typeof HTMLCanvasElement.prototype.getContext;
   });
   await boot(page, '?selftest');
-  const games = ['phish', 'password', 'invaders'];
+  const games = ['phish', 'password', 'invaders', 'port', 'bughunt'];
   const cycle = async (id: string) => {
     await launch(page, id);
     await expect(page.locator('.game-root')).toHaveCount(1);
