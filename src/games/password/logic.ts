@@ -1,118 +1,97 @@
-import zxcvbn from 'zxcvbn';
+import type { Rng } from '../../core/random';
 
-// Scoring for Password Smash. All analysis happens in the page: passwords are never sent or stored.
+export const MISS_COST = 1;
+export const SOLVE_COST = 2;
+export const REWARD_TURNS = 2;
+export const CHALLENGE_POINTS = 25;
+export const ALL_CRACKED_BONUS = 1000;
+/** Voluntary TAB/HACK challenges allowed per round. The automatic LAST CHANCE challenge never counts. */
+export const HACKS_PER_ROUND = 2;
 
-export const ROUND_SECONDS = 30;
-export const MAX_INPUT = 64;
-const GUESSES_PER_SECOND_LOG10 = 4; // a slow online attack: 10,000 guesses per second
-const YEAR = 31_557_600;
+/** 'out' = no turns left and not cracked yet (the UI offers a LAST CHANCE challenge). */
+export type RoundStatus = 'playing' | 'cracked' | 'out';
 
-export interface Round {
-  name: string;
-  /** Shown on screen, e.g. 'MAX 10 CHARACTERS'. */
-  rule: string;
-  maxLength?: number;
-  pattern?: RegExp;
-  /** log10(guesses) needed to survive. */
-  target: number;
-  targetLabel: string;
+export interface RoundState {
+  password: string;
+  /** One flag per character of the password. Spaces start revealed. */
+  revealed: boolean[];
+  /** Every character tried so far, lowercased, in order. */
+  tried: string[];
+  turns: number;
+  status: RoundStatus;
 }
 
-export const ROUNDS: Round[] = [
-  { name: 'WARM-UP', rule: 'ANY PASSWORD', target: 9, targetLabel: '1 DAY' },
-  { name: 'SHORT', rule: 'MAX 10 CHARACTERS', maxLength: 10, target: 9.8, targetLabel: '1 WEEK' },
-  { name: 'PASSPHRASE', rule: 'LOWERCASE AND SPACES ONLY', pattern: /^[a-z ]+$/, target: 14.5, targetLabel: '1,000 YEARS' },
-  { name: 'FORTRESS', rule: 'MAX 16 CHARACTERS', maxLength: 16, target: 14.5, targetLabel: '1,000 YEARS' },
-  { name: 'VAULT', rule: 'ANY PASSWORD', target: 17.5, targetLabel: '1 MILLION YEARS' },
-];
+export type GuessResult = 'hit' | 'miss' | 'repeat' | 'invalid';
 
-const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? '' : 'S'}`;
+const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
-/** Human crack time for log10(guesses), assuming 10^4 guesses per second. */
-export function formatCrackTime(guessesLog10: number): string {
-  const seconds = 10 ** (guessesLog10 - GUESSES_PER_SECOND_LOG10);
-  if (seconds < 1) return 'INSTANTLY';
-  if (seconds < 60) return plural(Math.floor(seconds), 'SECOND');
-  if (seconds < 3600) return plural(Math.floor(seconds / 60), 'MINUTE');
-  if (seconds < 86_400) return plural(Math.floor(seconds / 3600), 'HOUR');
-  if (seconds < YEAR) return plural(Math.floor(seconds / 86_400), 'DAY');
-  const years = seconds / YEAR;
-  if (years < 1e3) return plural(Math.floor(years), 'YEAR');
-  if (years >= 1e15) return 'FOREVER';
-  const [value, word] = years >= 1e12 ? [1e12, 'TRILLION'] : years >= 1e9 ? [1e9, 'BILLION'] : years >= 1e6 ? [1e6, 'MILLION'] : [1e3, 'THOUSAND'];
-  return `${Math.floor(years / value).toLocaleString('en-US')} ${word} YEARS`;
+export function createRound(password: string, turns: number): RoundState {
+  return { password, revealed: [...password].map((c) => c === ' '), tried: [], turns, status: 'playing' };
 }
 
-/** The first rule the password breaks in this round, or null. */
-export function brokenRule(password: string, round: Round): string | null {
-  if (password.length === 0) return 'EMPTY';
-  if (round.maxLength !== undefined && password.length > round.maxLength) return `MAX ${round.maxLength} CHARACTERS`;
-  if (round.pattern && !round.pattern.test(password)) return round.rule;
-  return null;
+function settle(r: RoundState): void {
+  if (r.revealed.every(Boolean)) r.status = 'cracked';
+  else if (r.turns <= 0) {
+    r.turns = 0;
+    r.status = 'out';
+  } else r.status = 'playing';
 }
 
-export interface Chip {
-  label: string;
-  good: boolean;
+function revealAll(r: RoundState, ch: string): void {
+  [...r.password].forEach((c, i) => {
+    if (same(c, ch)) r.revealed[i] = true;
+  });
 }
 
-interface Match {
-  pattern: string;
-  token: string;
-  dictionary_name?: string;
-  l33t?: boolean;
+/** One typed character. Letters match either case. A miss costs a turn; a hit or a repeat is free. */
+export function guessChar(r: RoundState, ch: string): GuessResult {
+  if (r.status !== 'playing' || ch.length !== 1 || ch === ' ') return 'invalid';
+  const key = ch.toLowerCase();
+  if (r.tried.includes(key)) return 'repeat';
+  r.tried.push(key);
+  const hit = [...r.password].some((c) => same(c, key));
+  if (hit) revealAll(r, key);
+  else r.turns -= MISS_COST;
+  settle(r);
+  return hit ? 'hit' : 'miss';
 }
 
-/** Short feedback labels describing what the cracker found. */
-export function chipsFor(password: string, sequence: readonly Match[]): Chip[] {
-  const labels = new Map<string, boolean>();
-  const bad = (label: string) => labels.set(label, false);
-  for (const m of sequence) {
-    switch (m.pattern) {
-      case 'dictionary':
-        if (m.dictionary_name === 'passwords') bad(m.token.length === password.length ? 'COMMON PASSWORD' : 'DICTIONARY WORD');
-        else if (m.dictionary_name?.includes('names')) bad('NAME');
-        else bad('DICTIONARY WORD');
-        if (m.l33t) bad('L33T SWAP');
-        break;
-      case 'spatial': bad('KEYBOARD PATTERN'); break;
-      case 'repeat': bad('REPEATS'); break;
-      case 'sequence': bad('SEQUENCE'); break;
-      case 'date': bad('DATE'); break;
-      case 'regex': bad('YEAR'); break;
-    }
+/** A whole-password guess: exact and case-sensitive. Wrong costs SOLVE_COST turns. */
+export function solve(r: RoundState, guess: string): boolean {
+  if (r.status !== 'playing') return false;
+  if (guess === r.password) {
+    r.revealed = r.revealed.map(() => true);
+    r.status = 'cracked';
+    return true;
   }
-  if (password.length > 0 && password.length < 8) bad('TOO SHORT');
-  if (password.length >= 16) labels.set('LONG', true);
-  if (sequence.length > 0 && sequence.every((m) => m.pattern === 'bruteforce')) labels.set('NO PATTERNS FOUND', true);
-  return [...labels].map(([label, good]) => ({ label, good }));
+  r.turns -= SOLVE_COST;
+  settle(r);
+  return false;
 }
 
-export interface Verdict {
-  guessesLog10: number;
-  crackTime: string;
-  chips: Chip[];
-  /** zxcvbn's one-line warning, '' if none. */
-  warning: string;
-  broken: string | null;
-  survived: boolean;
-  points: number;
+export function addTurns(r: RoundState, n: number): void {
+  if (r.status === 'cracked') return;
+  r.turns += n;
+  settle(r);
 }
 
-export function judge(password: string, round: Round): Verdict {
-  const broken = brokenRule(password, round);
-  if (broken === 'EMPTY') return { guessesLog10: 0, crackTime: 'INSTANTLY', chips: [], warning: '', broken, survived: false, points: 0 };
-  const result = zxcvbn(password.slice(0, MAX_INPUT));
-  const g = result.guesses_log10;
-  const survived = broken === null && g >= round.target;
-  const points = broken ? 0 : Math.min(2000, Math.round(g * 100)) + (survived ? 500 : 0);
-  return {
-    guessesLog10: g,
-    crackTime: formatCrackTime(g),
-    chips: chipsFor(password, result.sequence as unknown as Match[]),
-    warning: result.feedback.warning ?? '',
-    broken,
-    survived,
-    points,
-  };
+/** Reveals every occurrence of one random still-hidden character. Returns it, or null if none is hidden. */
+export function revealRandom(r: RoundState, rng: Rng = Math.random): string | null {
+  const hidden = [...r.password].filter((_, i) => !r.revealed[i]);
+  if (hidden.length === 0) return null;
+  const ch = hidden[Math.floor(rng() * hidden.length)];
+  revealAll(r, ch);
+  if (!r.tried.includes(ch.toLowerCase())) r.tried.push(ch.toLowerCase());
+  settle(r);
+  return ch;
+}
+
+/** The board as the player sees it: the character where revealed, '' where still hidden. */
+export function board(r: RoundState): string[] {
+  return [...r.password].map((c, i) => (r.revealed[i] ? c : ''));
+}
+
+/** Points for cracking round `index` (0-based) with `turnsLeft` turns to spare. */
+export function crackPoints(index: number, turnsLeft: number): number {
+  return 100 * (index + 1) + 50 * turnsLeft;
 }

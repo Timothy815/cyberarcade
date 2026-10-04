@@ -146,7 +146,7 @@ that ramps so runs end in 2–4 minutes.
    A rulebook panel lists the current rules (e.g. allow 443, deny 23, block
    10.66.0.0/16). ALLOW / DENY (← / → or click). Rulebook changes each "shift."
    Three wrong calls = breach, game over. Uses real ports 22, 23, 25, 53, 80, 443, 3389.
-6. **Password Smash** — Player types a password; a "cracking rig" animation runs
+6. **Password Smash** — *(Replaced by Password Cracker: see `2026-10-03-password-cracker-design.md`.)* Player types a password; a "cracking rig" animation runs
    and reveals estimated crack time via **zxcvbn**, with feedback (dictionary word,
    pattern, too short). Score derives from crack time; bonus challenge rounds
    (e.g. "under 16 characters, survives 1000 years"). Passwords never leave the page

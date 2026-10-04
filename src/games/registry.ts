@@ -31,10 +31,10 @@ export const CABINETS: Cabinet[] = [
   {
     kind: 'game',
     id: 'password',
-    title: 'Password Smash',
-    tagline: 'Build a password and watch the cracking rig try to break it. How long will it last?',
+    title: 'Password Cracker',
+    tagline: 'Crack fake users\' passwords from clues in their profiles, one character at a time.',
     category: 'learn',
-    controls: [['TYPE', 'Password'], ['ENTER', 'Crack it']],
+    controls: [['TYPE', 'Guess a character'], ['ENTER', 'Solve'], ['TAB', 'Hack challenge']],
     load: () => import('./password/index').then((m) => m.createGame()),
   },
   {
