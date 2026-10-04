@@ -1,5 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { SNIPPETS } from '../../src/games/bughunt/snippets';
+import { mulberry32 } from '../../src/core/random';
+import { caesar, TRIVIA } from '../../src/games/password/challenges';
+import { planRun } from '../../src/games/password/patterns';
 import { ITEMS } from '../../src/games/phish/items';
 import { evaluate, type Action, type Proto, type Rule } from '../../src/games/port/logic';
 import { boot, trackErrors } from './helpers';
@@ -46,46 +49,96 @@ test('phish: right answer scores, three wrong answers end the run', async ({ pag
   expect(errors).toEqual([]);
 });
 
-test('password: five rounds, input cleared, score adds up', async ({ page }) => {
+/** Picks `n` distinct characters that are not in `pw` (either case). Skips m, the mute key outside text fields. */
+function missesFor(pw: string, n: number): string[] {
+  const used = pw.toLowerCase();
+  return [...'qzxjvkwyfgbhupdtcnlrsoaie0123456789'].filter((c) => !used.includes(c)).slice(0, n);
+}
+
+/** Reads the open challenge from the DOM and returns the 0-based index of the right choice. */
+async function challengeAnswer(page: Page): Promise<number> {
+  const panel = page.locator('.pc-challenge');
+  const kind = await panel.getAttribute('data-kind');
+  const q = (await panel.locator('.pc-q').textContent()) ?? '';
+  const choices = await panel.locator('.pc-choice-text').allTextContents();
+  let right: string;
+  if (kind === 'trivia') {
+    const t = TRIVIA.find((x) => x.q === q)!;
+    right = t.choices[t.answer];
+  } else if (kind === 'caesar') {
+    const shift = Number(((await panel.locator('.pc-detail').textContent()) ?? '').replace(/\D/g, ''));
+    right = caesar(q, -shift);
+  } else right = String(parseInt(q, 2));
+  return choices.indexOf(right);
+}
+
+test('password cracker: crack round 1, earn turns, then get locked out', async ({ page }) => {
   const errors = trackErrors(page);
-  await boot(page);
+  const [r1, r2] = planRun(mulberry32(7));
+  await boot(page, '?seed=7');
   await launch(page, 'password');
-  const field = page.locator('.pw-input');
-  const entries = ['password', 'Xq7#vL2!pR', 'correct horse battery staple', 'kT9$wQ3&zM8^bNx', 'neon taco wizard galaxy 77!'];
-  for (const [i, pw] of entries.entries()) {
-    await expect(page.locator('.pw-round')).toContainText(`ROUND ${i + 1}`);
-    await expect(field).toBeFocused();
-    await page.keyboard.type(pw);
-    await page.keyboard.press('Enter');
-    await expect(field).toHaveValue('');
-    await expect(page.locator('.pw-stamp')).toBeVisible();
-    if (i === 0) await expect(page.locator('.pw-chip')).toContainText(['COMMON PASSWORD']);
-    if (i === 2) await expect(page.locator('.pw-stamp')).toHaveText('SURVIVED!');
-    await page.waitForTimeout(1050); // result ignores Enter for the first second
-    await page.keyboard.press('Enter');
+  const turns = page.locator('[data-hud="turns"]');
+  await expect(page.locator('.pc-round')).toContainText('ROUND 1');
+  await expect(page.locator('.pc-guess')).toBeFocused();
+  await expect(turns).toHaveText('8');
+
+  const [miss] = missesFor(r1.password, 1);
+  await page.keyboard.press(miss);
+  await expect(turns).toHaveText('7');
+  await expect(page.locator('.pc-chip.is-miss')).toHaveText(miss.toUpperCase());
+
+  const hit = [...r1.password].find((c) => /[a-z]/i.test(c) && c.toLowerCase() !== 'm')!;
+  await page.keyboard.press(hit);
+  await expect(page.locator('.pc-slot.is-shown').first()).toBeVisible();
+  await expect(turns).toHaveText('7');
+
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.pc-solve')).toBeFocused();
+  await page.keyboard.type(r1.password);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.pc-stamp')).toHaveText('CRACKED!');
+  await expect(page.locator('[data-hud="score"]')).toHaveText('450'); // 100 × round 1 + 50 × 7 turns
+  await page.waitForTimeout(1050); // the result ignores Enter for the first second
+  await page.keyboard.press('Enter');
+
+  await expect(page.locator('.pc-round')).toContainText('ROUND 2');
+  await expect(turns).toHaveText('8');
+  await page.keyboard.press('Tab');
+  await expect(page.locator('.pc-challenge')).toBeVisible();
+  await page.keyboard.press(String((await challengeAnswer(page)) + 1));
+  await expect(page.locator('.pc-reward')).toBeVisible();
+  await page.keyboard.press('1');
+  await expect(turns).toHaveText('10');
+  await expect(page.locator('[data-hud="score"]')).toHaveText('475');
+
+  for (const c of missesFor(r2.password, 10)) {
+    await expect(page.locator('.password')).toHaveAttribute('data-phase', 'guess');
+    await page.keyboard.press(c);
   }
-  // 48 + (1000 + 500) + (2000 + 500) + (1500 + 500) + (2000 + 500)
-  await expect(page.locator('.game-over .final-score')).toHaveText('8,548');
+  await expect(page.locator('.pc-challenge.is-last')).toBeVisible();
+  const right = await challengeAnswer(page);
+  await page.keyboard.press(String(((right + 1) % 4) + 1));
+  await expect(page.locator('.pc-stamp')).toHaveText('ACCOUNT LOCKED');
+  await expect(page.locator('.game-over .final-score')).toHaveText('475', { timeout: 6000 });
   expect(errors).toEqual([]);
 });
 
-test('password: Enter on an empty field does not submit the round', async ({ page }) => {
+test('password cracker: Enter on an empty solve field goes back to guessing', async ({ page }) => {
   const errors = trackErrors(page);
   await boot(page);
   await launch(page, 'password');
-  const field = page.locator('.pw-input');
-  await expect(field).toBeFocused();
-  await expect(field).toHaveValue('');
+  const root = page.locator('.password');
+  await expect(page.locator('.pc-guess')).toBeFocused();
 
-  // Simulates a double-tap/held Enter landing on an empty field: must not crack/submit.
   await page.keyboard.press('Enter');
+  await expect(root).toHaveAttribute('data-phase', 'solve');
+  await expect(page.locator('.pc-solve')).toBeFocused();
   await page.keyboard.press('Enter');
 
-  await expect(page.locator('.password')).toHaveAttribute('data-phase', 'typing');
-  await expect(page.locator('.pw-round')).toContainText('ROUND 1');
-  await expect(page.locator('.pw-stamp')).not.toBeVisible();
-  await expect(field).toBeEnabled();
-  await expect(field).toBeFocused();
+  await expect(root).toHaveAttribute('data-phase', 'guess');
+  await expect(page.locator('[data-hud="turns"]')).toHaveText('8');
+  await expect(page.locator('.pc-guess')).toBeFocused();
+  await expect(page.locator('.pc-stamp')).not.toBeVisible();
   expect(errors).toEqual([]);
 });
 
