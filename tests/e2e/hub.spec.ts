@@ -21,9 +21,8 @@ test('arrow keys rotate the carousel with wraparound', async ({ page }) => {
 
 test('a coming-soon cabinet shakes instead of launching', async ({ page }) => {
   await boot(page);
-  await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('ArrowRight');
-  await expect(page.locator('.cabinet.is-center')).toHaveAttribute('data-id', 'runner');
+  for (let i = 0; i < 4; i++) await page.keyboard.press('ArrowRight');
+  await expect(page.locator('.cabinet.is-center')).toHaveAttribute('data-id', 'defense');
   await page.keyboard.press('Enter');
   await expect(page.locator('.cabinet.is-center')).toHaveClass(/shake/);
   await expect(page.locator('.title-card')).toHaveCount(0);
