@@ -193,6 +193,40 @@ test('invaders: Phaser boots, firing scores, Esc tears the canvas down', async (
   expect(errors).toEqual([]);
 });
 
+test('runner: Phaser boots, steering moves the packet, Esc tears the canvas down', async ({ page }) => {
+  const errors = trackErrors(page);
+  await boot(page, '?seed=3');
+  await launch(page, 'runner');
+  const root = page.locator('.runner');
+  await expect(page.locator('.pr-canvas canvas')).toHaveCount(1);
+  await expect(root).toHaveAttribute('data-lane', '1');
+  await page.keyboard.press('ArrowLeft');
+  await expect(root).toHaveAttribute('data-lane', '0');
+  await page.keyboard.press('d');
+  await expect(root).toHaveAttribute('data-lane', '1');
+  await expect(page.locator('[data-hud="score"]')).not.toHaveText('0');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.game-layer')).toBeHidden();
+  await expect(page.locator('canvas')).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('runner: the first router gate scores when the packet takes the matching lane', async ({ page }) => {
+  const errors = trackErrors(page);
+  await boot(page, '?seed=5');
+  await launch(page, 'runner');
+  // No hazards spawn before the first gate, so the packet can wait in lane 1 for the banner.
+  await expect(page.locator('.pr-router')).toHaveClass(/is-on/, { timeout: 20_000 });
+  const correct = Number(await page.locator('.runner').getAttribute('data-correct'));
+  if (correct === 0) await page.keyboard.press('ArrowLeft');
+  if (correct === 2) await page.keyboard.press('ArrowRight');
+  await expect(page.locator('.runner')).toHaveAttribute('data-lane', String(correct));
+  await expect(page.locator('.pr-flash')).toContainText(/ROUTED \+100/, { timeout: 8000 });
+  await expect(page.locator('[data-hud="gates"]')).toHaveText('1');
+  await expect(page.locator('[data-hud="lives"]')).toHaveText('◆◆◆');
+  expect(errors).toEqual([]);
+});
+
 /** Rebuilds the rulebook and packet from the page's data attributes and asks the real firewall logic. */
 async function portAnswer(page: Page): Promise<Action> {
   const rows = await page.locator('.pg-rule').evaluateAll((els) => els.map((e) => ({ ...(e as HTMLElement).dataset })));
@@ -306,11 +340,11 @@ test('bughunt: right picks score, misses show the fix, three strikes end the run
   expect(errors).toEqual([]);
 });
 
-test('20 launch/exit cycles across the five games leave nothing behind', async ({ page }) => {
+test('20 launch/exit cycles across the six games leave nothing behind', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = trackErrors(page);
-  // Records every WebGL/WebGL2 context any canvas hands out, so a regression in invaders'
-  // destroyGame (context not released) fails this test even though handler/node counts stay clean.
+  // Records every WebGL/WebGL2 context any canvas hands out, so a regression in the Phaser
+  // games' destroyGame (context not released) fails this test even though handler/node counts stay clean.
   await page.addInitScript(() => {
     type GLContext = WebGLRenderingContext | WebGL2RenderingContext;
     const contexts: GLContext[] = [];
@@ -323,7 +357,7 @@ test('20 launch/exit cycles across the five games leave nothing behind', async (
     } as typeof HTMLCanvasElement.prototype.getContext;
   });
   await boot(page, '?selftest');
-  const games = ['phish', 'password', 'invaders', 'port', 'bughunt'];
+  const games = ['phish', 'password', 'invaders', 'port', 'bughunt', 'runner'];
   const cycle = async (id: string) => {
     await launch(page, id);
     await expect(page.locator('.game-root')).toHaveCount(1);

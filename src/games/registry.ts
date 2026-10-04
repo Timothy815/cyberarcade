@@ -26,7 +26,8 @@ export const CABINETS: Cabinet[] = [
     title: 'Packet Runner',
     tagline: 'Race a data packet through the network. Dodge DDoS floods and take the right route.',
     category: 'arcade',
-    controls: [['← →', 'Switch lane']],
+    controls: [['← → / A D', 'Switch lane']],
+    load: () => import('./runner/index').then((m) => m.createGame()),
   },
   {
     kind: 'game',

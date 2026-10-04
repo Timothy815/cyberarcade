@@ -55,7 +55,7 @@ describe('carousel', () => {
 
   it('marks unbuilt games COMING SOON and shows the Classic note', () => {
     const { c } = make();
-    expect(c.el.querySelector('[data-id="runner"] .soon')).not.toBeNull();
+    expect(c.el.querySelector('[data-id="defense"] .soon')).not.toBeNull();
     expect(c.el.querySelector('[data-id="classic"] .cab-note')?.textContent).toContain('Alt+');
     c.el.remove();
   });
