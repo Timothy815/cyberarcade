@@ -25,6 +25,13 @@ describe('profiles bank', () => {
     expect(new Set(BOSS_WORDS).size).toBe(BOSS_WORDS.length);
     for (const w of BOSS_WORDS) expect(w).toMatch(/^[a-z]{3,10}$/);
   });
+
+  it('no boss word equals any profile fact, case-insensitively', () => {
+    const facts = PROFILES.flatMap((p) => Object.values(p))
+      .filter((v): v is string => typeof v === 'string')
+      .map((v) => v.toLowerCase());
+    for (const w of BOSS_WORDS) expect(facts, w).not.toContain(w.toLowerCase());
+  });
 });
 
 describe('helpers', () => {

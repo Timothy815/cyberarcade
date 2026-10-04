@@ -32,9 +32,9 @@ export const PROFILES: Profile[] = [
 /** Boss-round passphrase words: short, common, nothing to do with any profile. */
 export const BOSS_WORDS: string[] = [
   'purple', 'tractor', 'moon', 'pickle', 'river', 'candle', 'thunder', 'velvet', 'giraffe', 'pocket',
-  'marble', 'cactus', 'lantern', 'walrus', 'meadow', 'rocket', 'button', 'glacier', 'orbit', 'pepper',
+  'marble', 'cactus', 'lantern', 'walrus', 'meadow', 'compass', 'button', 'glacier', 'orbit', 'muffin',
   'sandal', 'violin', 'oyster', 'blanket', 'comet', 'puzzle', 'saddle', 'tunnel', 'wizard', 'yogurt',
   'basket', 'dragon', 'falcon', 'helmet', 'island', 'jungle', 'kettle', 'ladder', 'magnet', 'noodle',
-  'olive', 'parrot', 'quilt', 'robot', 'silver', 'tomato', 'umbrella', 'volcano', 'window', 'zebra',
+  'olive', 'canyon', 'quilt', 'robot', 'silver', 'tomato', 'umbrella', 'volcano', 'window', 'zebra',
   'anchor', 'bubble', 'copper', 'desert', 'engine', 'forest', 'garden', 'hammer', 'igloo', 'jacket',
 ];

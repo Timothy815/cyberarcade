@@ -33,7 +33,8 @@ Each run is **6 rounds**. Each round:
    submit (ENTER on an empty field closes it). Case-sensitive exact match.
    Right → cracked. Wrong → **−2 turns.**
 5. If every character becomes revealed through guesses, the round counts as cracked.
-6. **Challenge:** press **TAB** (or click **HACK**) at any time to take a challenge (§4).
+6. **Challenge:** press **TAB** (or click **HACK**) to take a challenge (§4) — up to **2** hack
+   challenges per round; LAST CHANCE does not count.
 7. **Zero turns** → an automatic **LAST CHANCE** challenge. Right → +2 turns and play
    continues. Wrong → **ACCOUNT LOCKED**, the password is revealed, the run ends.
 8. After a crack: the full password and a **lesson card** for that round's pattern
@@ -68,6 +69,8 @@ from that profile's facts with the round's pattern.
 ## 4. Challenges
 
 All challenges are **multiple choice, keys 1–4** (or click). About **70% trivia, 30% decode**.
+Voluntary hack challenges are capped at up to **2 per round**; LAST CHANCE does not count against
+the cap and is never blocked.
 
 - **Trivia:** a hand-written bank of about **40** security questions (phishing signs, HTTPS,
   MFA, updates, Wi-Fi, ports, malware types), each with 4 choices and one right answer.

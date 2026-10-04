@@ -11,6 +11,7 @@ import {
   crackPoints,
   createRound,
   guessChar,
+  HACKS_PER_ROUND,
   revealRandom,
   REWARD_TURNS,
   solve,
@@ -151,6 +152,7 @@ export function createGame(): GameModule {
       let lastChance = false;
       let deadline = 0;
       let crackAt = 0;
+      let hacksLeft = HACKS_PER_ROUND;
 
       const setPhase = (p: Phase) => {
         phase = p;
@@ -189,9 +191,16 @@ export function createGame(): GameModule {
         );
       };
 
+      const renderHackBtn = () => {
+        hackBtn.textContent = `HACK (TAB) ×${hacksLeft}`;
+        hackBtn.disabled = hacksLeft <= 0;
+      };
+
       const startRound = () => {
         const r = plan[index];
         round = createRound(r.password, r.pattern.turns);
+        hacksLeft = HACKS_PER_ROUND;
+        renderHackBtn();
         hud.set('round', `${index + 1}/${plan.length}`);
         title.textContent = `ROUND ${index + 1}: ${r.pattern.name}`;
         title.classList.toggle('is-boss', index === plan.length - 1);
@@ -327,6 +336,18 @@ export function createGame(): GameModule {
         setPhase('challenge');
       };
 
+      /** TAB / HACK: a voluntary challenge, capped at HACKS_PER_ROUND. LAST CHANCE bypasses this entirely. */
+      const tryHack = (before?: () => void) => {
+        if (hacksLeft <= 0) {
+          say('NO HACKS LEFT THIS ROUND');
+          return;
+        }
+        hacksLeft--;
+        renderHackBtn();
+        before?.();
+        openChallenge(false);
+      };
+
       const answer = (i: number) => {
         if (phase !== 'challenge' || !challenge) return;
         const right = i === challenge.answer;
@@ -373,7 +394,7 @@ export function createGame(): GameModule {
       };
       rewardTurns.addEventListener('click', () => reward('turns'));
       rewardReveal.addEventListener('click', () => reward('reveal'));
-      hackBtn.addEventListener('click', () => phase === 'guess' && openChallenge(false));
+      hackBtn.addEventListener('click', () => phase === 'guess' && tryHack());
 
       const tick = () => {
         raf = requestAnimationFrame(tick);
@@ -397,14 +418,13 @@ export function createGame(): GameModule {
         if (phase === 'guess') {
           if (isEnter(e)) {
             if (!e.repeat) openSolve();
-          } else if (e.key === 'Tab') openChallenge(false);
+          } else if (e.key === 'Tab') tryHack();
           else if (typed && e.key !== ' ') guess(e.key);
         } else if (phase === 'solve') {
           if (isEnter(e)) {
             if (!e.repeat) submitSolve();
           } else if (e.key === 'Tab') {
-            solveField.value = '';
-            openChallenge(false);
+            tryHack(() => (solveField.value = ''));
           } else if (typed) ctx.audio.sfx('type');
         } else if (phase === 'challenge') {
           const i = choiceKey(e);

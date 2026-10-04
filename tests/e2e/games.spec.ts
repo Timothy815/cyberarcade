@@ -123,6 +123,42 @@ test('password cracker: crack round 1, earn turns, then get locked out', async (
   expect(errors).toEqual([]);
 });
 
+test('password cracker: hack challenges are capped at 2 per round', async ({ page }) => {
+  const errors = trackErrors(page);
+  const [r1] = planRun(mulberry32(7));
+  await boot(page, '?seed=7');
+  await launch(page, 'password');
+  const hackBtn = page.locator('.pc-hack');
+  await expect(hackBtn).toHaveText('HACK (TAB) ×2');
+
+  for (let i = 0; i < 2; i++) {
+    await page.keyboard.press('Tab');
+    await expect(page.locator('.pc-challenge')).toBeVisible();
+    await page.keyboard.press(String((await challengeAnswer(page)) + 1));
+    await expect(page.locator('.pc-reward')).toBeVisible();
+    await page.keyboard.press('1'); // +2 turns, back to guessing
+    await expect(page.locator('.password')).toHaveAttribute('data-phase', 'guess');
+  }
+  await expect(hackBtn).toHaveText('HACK (TAB) ×0');
+  await expect(hackBtn).toBeDisabled();
+
+  await page.keyboard.press('Tab'); // 3rd hack this round: blocked
+  await expect(page.locator('.pc-challenge')).toBeHidden();
+  await expect(page.locator('.pc-msg')).toHaveText('NO HACKS LEFT THIS ROUND');
+
+  await page.keyboard.press('Enter');
+  await page.keyboard.type(r1.password);
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.pc-stamp')).toHaveText('CRACKED!');
+  await page.waitForTimeout(1050);
+  await page.keyboard.press('Enter');
+
+  await expect(page.locator('.pc-round')).toContainText('ROUND 2');
+  await expect(hackBtn).toHaveText('HACK (TAB) ×2'); // cap resets each round
+  await expect(hackBtn).not.toBeDisabled();
+  expect(errors).toEqual([]);
+});
+
 test('password cracker: Enter on an empty solve field goes back to guessing', async ({ page }) => {
   const errors = trackErrors(page);
   await boot(page);

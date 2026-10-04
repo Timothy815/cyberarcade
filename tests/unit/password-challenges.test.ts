@@ -46,6 +46,14 @@ describe('caesar', () => {
       expect(c.seconds).toBe(DECODE_SECONDS);
     }
   });
+
+  it('every choice has the same length as the answer, so length cannot give it away', () => {
+    for (let seed = 0; seed < 200; seed++) {
+      const c = makeCaesar(mulberry32(seed));
+      const rightLength = c.choices[c.answer].length;
+      for (const w of c.choices) expect(w.length).toBe(rightLength);
+    }
+  });
 });
 
 describe('binary', () => {
@@ -103,5 +111,26 @@ describe('createChallenges', () => {
       expect(c.choices[c.answer]).toBe(t.choices[t.answer]);
       expect(c.seconds).toBe(TRIVIA_SECONDS);
     }
+  });
+
+  it('shuffles trivia choices across positions, always keeping the bank answer at `answer`', () => {
+    const next = createChallenges(mulberry32(11));
+    const positionsByQuestion = new Map<string, Set<number>>();
+    let seen = 0;
+    while (seen < 800) {
+      const c = next();
+      if (c.kind !== 'trivia') continue;
+      seen++;
+      const t = TRIVIA.find((x) => x.q === c.prompt)!;
+      expect(c.choices[c.answer]).toBe(t.choices[t.answer]);
+      expect(new Set(c.choices)).toEqual(new Set(t.choices));
+      const positions = positionsByQuestion.get(c.prompt) ?? new Set<number>();
+      positions.add(c.answer);
+      positionsByQuestion.set(c.prompt, positions);
+    }
+    // At least one question is seen at more than one position across its repeated draws: proof it is reshuffled, not bank order.
+    expect([...positionsByQuestion.values()].some((s) => s.size >= 2)).toBe(true);
+    const allPositions = new Set([...positionsByQuestion.values()].flatMap((s) => [...s]));
+    expect(allPositions.size).toBeGreaterThanOrEqual(3);
   });
 });

@@ -42,7 +42,7 @@ export const TRIVIA: Trivia[] = [
   { q: 'An attacker posing as IT on the phone asking for your password is…', choices: ['Normal', 'Vishing (voice phishing)', 'A firewall test', 'Encryption'], answer: 1 },
   { q: 'Why back up your files?', choices: ['To recover from ransomware or loss', 'To make them load faster', 'To hide them', 'To share them'], answer: 0 },
   { q: 'A strong passphrase is…', choices: ['Your pet and birth year', 'Several random words', 'One dictionary word', '123456'], answer: 1 },
-  { q: 'Which is an authentication factor?', choices: ['Something you know', 'Your screen size', 'Your browser colour', 'Your typing speed'], answer: 0 },
+  { q: 'Which is one of the three classic authentication factors?', choices: ['Something you know', 'Your screen size', 'Your browser colour', 'Your typing speed'], answer: 0 },
   { q: 'An app asks for your contacts, camera and location just to be a flashlight. You…', choices: ['Allow all', 'Deny, it does not need them', 'Share it with friends', 'Turn off updates'], answer: 1 },
   { q: 'What does a "white hat" hacker do?', choices: ['Steals data', 'Finds flaws with permission to fix them', 'Spreads worms', 'Sells passwords'], answer: 1 },
   { q: 'Telnet (port 23) is unsafe because…', choices: ['It is too fast', 'It sends everything in plain text', 'It only works on phones', 'It needs a VPN'], answer: 1 },
@@ -67,7 +67,7 @@ export interface Challenge {
 export const TRIVIA_SECONDS = 10;
 export const DECODE_SECONDS = 15;
 export const DECODE_SHARE = 0.3;
-export const CAESAR_WORDS = ['VIRUS', 'PATCH', 'CYBER', 'LOGIN', 'TOKEN', 'ROUTER', 'HACKER', 'SECRET', 'BACKUP', 'SHIELD', 'PIXEL', 'CODE', 'WORM', 'LOCK', 'KEY', 'DATA'];
+export const CAESAR_WORDS = ['VIRUS', 'PATCH', 'CYBER', 'LOGIN', 'TOKEN', 'ROUTER', 'HACKER', 'SECRET', 'BACKUP', 'SHIELD', 'PIXEL', 'CODE', 'WORM', 'LOCK', 'DATA'];
 
 const A = 'A'.charCodeAt(0);
 
@@ -85,7 +85,8 @@ function withAnswer(answer: string, others: string[], rng: Rng): { choices: stri
 export function makeCaesar(rng: Rng = Math.random): Challenge {
   const word = pick(CAESAR_WORDS, rng);
   const shift = 1 + Math.floor(rng() * 3);
-  const others = shuffle(CAESAR_WORDS.filter((w) => w !== word), rng).slice(0, 3);
+  // Distractors share the answer's length, so letter-counting can't give it away.
+  const others = shuffle(CAESAR_WORDS.filter((w) => w !== word && w.length === word.length), rng).slice(0, 3);
   return { kind: 'caesar', prompt: caesar(word, shift), detail: `SHIFT BACK ${shift}`, seconds: DECODE_SECONDS, ...withAnswer(word, others, rng) };
 }
 
@@ -98,8 +99,10 @@ export function makeBinary(rng: Rng = Math.random): Challenge {
   return { kind: 'binary', prompt: bits(n), detail: '128 64 32 16 8 4 2 1', seconds: DECODE_SECONDS, ...withAnswer(String(n), others.map(String), rng) };
 }
 
-function fromTrivia(t: Trivia): Challenge {
-  return { kind: 'trivia', prompt: t.q, detail: '', choices: [...t.choices], answer: t.answer, seconds: TRIVIA_SECONDS };
+function fromTrivia(t: Trivia, rng: Rng): Challenge {
+  const right = t.choices[t.answer];
+  const others = t.choices.filter((_, i) => i !== t.answer);
+  return { kind: 'trivia', prompt: t.q, detail: '', seconds: TRIVIA_SECONDS, ...withAnswer(right, others, rng) };
 }
 
 /** Endless challenge source: about 30% decodes, the rest trivia with no repeats until the bank runs out. */
@@ -108,6 +111,6 @@ export function createChallenges(rng: Rng = Math.random): () => Challenge {
   return () => {
     if (rng() < DECODE_SHARE) return rng() < 0.5 ? makeCaesar(rng) : makeBinary(rng);
     if (deck.length === 0) deck = shuffle(TRIVIA, rng);
-    return fromTrivia(deck.pop()!);
+    return fromTrivia(deck.pop()!, rng);
   };
 }

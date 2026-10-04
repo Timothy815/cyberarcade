@@ -5,6 +5,8 @@ export const SOLVE_COST = 2;
 export const REWARD_TURNS = 2;
 export const CHALLENGE_POINTS = 25;
 export const ALL_CRACKED_BONUS = 1000;
+/** Voluntary TAB/HACK challenges allowed per round. The automatic LAST CHANCE challenge never counts. */
+export const HACKS_PER_ROUND = 2;
 
 /** 'out' = no turns left and not cracked yet (the UI offers a LAST CHANCE challenge). */
 export type RoundStatus = 'playing' | 'cracked' | 'out';
