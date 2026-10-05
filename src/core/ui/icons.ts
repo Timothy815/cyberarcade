@@ -31,6 +31,10 @@ export const ICONS: Record<string, string> = {
     '<ellipse cx="32" cy="36" rx="12" ry="16"/><path d="M32 20v32M24 14l4 6M40 14l-4 6"/>' +
       '<path d="M20 30H8M20 40H8M20 48l-10 6M44 30h12M44 40h12M44 48l10 6"/>',
   ),
+  repair: svg(
+    '<rect x="8" y="34" width="48" height="18" rx="4"/><path d="M18 34V22M46 34V22"/>' +
+      '<circle cx="18" cy="43" r="2"/><circle cx="26" cy="43" r="2"/><path d="M36 43h12M34 8l-6 10h8l-6 10"/>',
+  ),
   classic: svg(
     '<rect x="8" y="30" width="48" height="24" rx="6"/><path d="M32 30V14"/><circle cx="32" cy="10" r="5"/>' +
       '<circle cx="44" cy="40" r="3"/><circle cx="50" cy="46" r="3"/><path d="M16 42h12M22 36v12"/>',

@@ -67,6 +67,18 @@ export const CABINETS: Cabinet[] = [
     load: () => import('./bughunt/index').then((m) => m.createGame()),
   },
   {
+    kind: 'game',
+    id: 'repair',
+    title: 'Router Repair',
+    tagline: 'Corrupted firmware is mangling network traffic. Patch the node code so the data comes out clean.',
+    category: 'learn',
+    controls: [
+      ['1–3', 'Patch'],
+      ['SPACE', 'Fast-forward'],
+    ],
+    load: () => import('./repair/index').then((m) => m.createGame()),
+  },
+  {
     kind: 'link',
     id: 'classic',
     title: "Classic '25",

@@ -1,11 +1,11 @@
 import { expect, test } from '@playwright/test';
 import { boot, trackErrors } from './helpers';
 
-test('boots to the hub with eight cabinets and no errors', async ({ page }) => {
+test('boots to the hub with nine cabinets and no errors', async ({ page }) => {
   const errors = trackErrors(page);
   await boot(page);
   await expect(page.locator('.hub-logo h1')).toHaveText('CYBER ARCADE');
-  await expect(page.locator('.cabinet')).toHaveCount(8);
+  await expect(page.locator('.cabinet')).toHaveCount(9);
   await expect(page.locator('.cabinet.is-center')).toHaveAttribute('data-id', 'invaders');
   expect(errors).toEqual([]);
 });

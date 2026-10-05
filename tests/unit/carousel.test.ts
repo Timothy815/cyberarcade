@@ -33,7 +33,7 @@ describe('carousel', () => {
   it('wraps next/prev and reports changes', () => {
     const { c, onChange } = make();
     c.prev();
-    expect(c.selected).toBe(7);
+    expect(c.selected).toBe(8);
     expect(c.current().id).toBe('classic');
     c.next();
     expect(c.selected).toBe(0);
