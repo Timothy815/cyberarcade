@@ -5,6 +5,8 @@ import { caesar, TRIVIA } from '../../src/games/password/challenges';
 import { planRun } from '../../src/games/password/patterns';
 import { ITEMS } from '../../src/games/phish/items';
 import { evaluate, type Action, type Proto, type Rule } from '../../src/games/port/logic';
+import { PUZZLES } from '../../src/games/repair/puzzles';
+import { expected } from '../../src/games/repair/run';
 import { boot, trackErrors } from './helpers';
 
 test.beforeEach(async ({ page }) => {
@@ -13,7 +15,7 @@ test.beforeEach(async ({ page }) => {
 
 /** Rotates the hub to the cabinet with `id` and starts it through the title card. */
 async function launch(page: Page, id: string): Promise<void> {
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < 10; i++) {
     if ((await page.locator('.cabinet.is-center').getAttribute('data-id')) === id) break;
     await page.keyboard.press('ArrowRight');
     await page.waitForTimeout(120);
@@ -388,7 +390,68 @@ test('bughunt: right picks score, misses show the fix, three strikes end the run
   expect(errors).toEqual([]);
 });
 
-test('20 launch/exit cycles across the seven games leave nothing behind', async ({ page }) => {
+/** The current Router Repair puzzle, looked up from the root's data-puzzle. */
+async function repairPuzzle(page: Page) {
+  const id = await page.locator('.repair').getAttribute('data-puzzle');
+  return PUZZLES.find((p) => p.id === id)!;
+}
+
+test('repair: the right patch plays back clean output, scores and moves on', async ({ page }) => {
+  const errors = trackErrors(page);
+  await boot(page, '?seed=1');
+  await launch(page, 'repair');
+  const root = page.locator('.repair');
+  await expect(root).toHaveAttribute('data-phase', 'pick');
+  const p = await repairPuzzle(page);
+  expect(p.tier).toBe(1);
+  await expect(page.locator('.rr-line.is-corrupt')).toHaveCount(1);
+  await expect(page.locator('.rr-option')).toHaveCount(3);
+
+  await page.keyboard.press(String(p.answer + 1));
+  await expect(page.locator('.rr-verdict')).toContainText('PATCHED!');
+  await expect(page.locator('.rr-cell.is-ok')).toHaveCount(expected(p).length);
+  await expect(page.locator('.rr-hint')).toHaveText(p.hints[p.answer]);
+  await expect(page.locator('[data-hud="fixed"]')).toHaveText('1');
+  await expect(page.locator('[data-hud="score"]')).not.toHaveText('0');
+
+  await expect(root).not.toHaveAttribute('data-puzzle', p.id, { timeout: 5000 });
+  await expect(root).toHaveAttribute('data-phase', 'pick');
+  await expect(page.locator('.rr-line.is-corrupt')).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
+
+test('repair: two wrong patches cost time, strike options, then auto-patch for no points', async ({ page }) => {
+  test.setTimeout(60_000);
+  const errors = trackErrors(page);
+  await boot(page, '?seed=2');
+  await launch(page, 'repair');
+  const root = page.locator('.repair');
+  await expect(root).toHaveAttribute('data-phase', 'pick');
+  const p = await repairPuzzle(page);
+  const [w1, w2] = [0, 1, 2].filter((i) => i !== p.answer);
+
+  await page.keyboard.press(String(w1 + 1));
+  await page.keyboard.press('Space'); // fast-forward the playback
+  await expect(page.locator('.rr-verdict')).toContainText('PATCH FAILED');
+  await expect(page.locator('.rr-hint')).toHaveText(p.hints[w1]);
+  await expect(page.locator(`[data-option="${w1}"]`)).toHaveAttribute('data-struck', '');
+  expect(Number(await root.getAttribute('data-time'))).toBeLessThanOrEqual(110);
+
+  await expect(root).toHaveAttribute('data-phase', 'pick', { timeout: 5000 });
+  await page.keyboard.press(String(w1 + 1)); // struck: ignored
+  await expect(root).toHaveAttribute('data-phase', 'pick');
+  await page.keyboard.press(String(w2 + 1));
+  await expect(page.locator('.rr-verdict')).toContainText('PATCH FAILED');
+  await expect(page.locator('.rr-verdict')).toContainText('AUTO-PATCHED', { timeout: 8000 });
+  await expect(page.locator('.rr-cell.is-ok')).toHaveCount(expected(p).length);
+
+  await expect(root).not.toHaveAttribute('data-puzzle', p.id, { timeout: 5000 });
+  await expect(page.locator('[data-hud="fixed"]')).toHaveText('0');
+  await expect(page.locator('[data-hud="score"]')).toHaveText('0');
+  expect(errors).toEqual([]);
+});
+
+test('20 launch/exit cycles across the eight games leave nothing behind', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = trackErrors(page);
   // Records every WebGL/WebGL2 context any canvas hands out, so a regression in the Phaser
@@ -405,7 +468,7 @@ test('20 launch/exit cycles across the seven games leave nothing behind', async 
     } as typeof HTMLCanvasElement.prototype.getContext;
   });
   await boot(page, '?selftest');
-  const games = ['phish', 'password', 'invaders', 'port', 'bughunt', 'runner', 'defense'];
+  const games = ['phish', 'password', 'invaders', 'port', 'bughunt', 'runner', 'defense', 'repair'];
   const cycle = async (id: string) => {
     await launch(page, id);
     await expect(page.locator('.game-root')).toHaveCount(1);

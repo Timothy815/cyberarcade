@@ -3,9 +3,9 @@ import { CABINETS, getCabinets } from '../../src/games/registry';
 import { ICONS } from '../../src/core/ui/icons';
 
 describe('registry', () => {
-  it('has the seven games plus Classic 25, with unique ids', () => {
-    expect(CABINETS).toHaveLength(8);
-    expect(new Set(CABINETS.map((c) => c.id)).size).toBe(8);
+  it('has the eight games plus Classic 25, with unique ids', () => {
+    expect(CABINETS).toHaveLength(9);
+    expect(new Set(CABINETS.map((c) => c.id)).size).toBe(9);
     expect(CABINETS.at(-1)).toMatchObject({ kind: 'link', id: 'classic' });
   });
 
@@ -20,7 +20,7 @@ describe('registry', () => {
     expect(getCabinets(new URLSearchParams(''))[0].id).toBe('invaders');
     const withTest = getCabinets(new URLSearchParams('selftest'));
     expect(withTest[0].id).toBe('selftest');
-    expect(withTest).toHaveLength(9);
+    expect(withTest).toHaveLength(10);
     expect(ICONS.selftest).toContain('<svg');
   });
 });
