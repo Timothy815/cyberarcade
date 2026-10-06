@@ -210,7 +210,7 @@ export function createGame(): GameModule {
           for (const [j, r] of lineEls[i].entries()) r.classList.toggle('is-active', j === line);
         });
         if (animate) {
-          // At fast playback a tick lasts less than a chip's flight: keep only the newest chips.
+          // Each animated tick's chip flight lasts the tick: clear the previous tick's chips before adding new ones.
           for (const l of links.values()) l.classList.remove('is-hot');
           for (const c of grid.querySelectorAll('.rr-chip')) c.remove();
         }
@@ -224,7 +224,7 @@ export function createGame(): GameModule {
           if (m.from !== 'IN' && m.to !== 'OUT') links.get(linkKey(m.from, m.to))?.classList.add('is-hot');
           const [x0, y0, x1, y1] = path(m);
           const chip = el('div.rr-chip', {}, show(p, m.value));
-          chip.style.cssText = `--x0:${x0}px;--y0:${y0}px;--x1:${x1}px;--y1:${y1}px`;
+          chip.style.cssText = `--x0:${x0}px;--y0:${y0}px;--x1:${x1}px;--y1:${y1}px;--ms:${play!.ms}ms`;
           chip.addEventListener('animationend', () => chip.remove());
           grid.append(chip);
         }
@@ -237,7 +237,7 @@ export function createGame(): GameModule {
         actualCount = 0;
         setLine(brokenRow(), /^ */.exec(run.puzzle.nodes[run.puzzle.broken.node].code[run.puzzle.broken.line])![0] + run.puzzle.options[choice], false);
         options.querySelector(`[data-option="${choice}"]`)?.classList.add('is-chosen');
-        play = { result, start: performance.now(), ms: Math.min(25, 3000 / result.trace.length), next: 0 };
+        play = { result, start: performance.now(), ms: Math.min(150, 3000 / result.trace.length), next: 0 };
         sync();
       };
 
@@ -313,7 +313,7 @@ export function createGame(): GameModule {
 
       const frame = (now: number) => {
         raf = requestAnimationFrame(frame);
-        const dt = Math.min(0.25, (now - last) / 1000);
+        const dt = Math.min(0.25, Math.max(0, (now - last) / 1000));
         last = now;
         if (play) {
           const { trace } = play.result;

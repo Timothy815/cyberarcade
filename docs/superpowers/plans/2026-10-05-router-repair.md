@@ -33,7 +33,7 @@
 - **Clock:** the rAF loop advances `run.tick(dt)` with `dt` capped at 0.25 s, so a stalled tab doesn't eat the clock in one jump.
 - **Hint after a wrong patch:** the hint stays visible when the player returns to `pick`, so it can be reread while choosing again.
 - **Goal placement:** the title and goal sit in one line across the top (under the HUD) instead of above the right-hand columns. A long goal there gets the full width; the right side keeps the room for INPUT / EXPECTED / ACTUAL.
-- **Chip pile-up:** fast playback ticks (as short as 25 ms) are shorter than a chip's 0.3 s flight, so each animated tick removes the previous chips before adding its own. The IN / OUT labels sit 32 px to the right of the chip path so chips never cover them.
+- **Chip pile-up:** a chip's flight is tied to the tick length (`--ms`, up to 150 ms), so it finishes within one tick; each animated tick still removes the previous chips before adding its own. The IN / OUT labels sit 32 px to the right of the chip path so chips never cover them.
 - **Count updates:** adding a cabinet changes three existing counts: the registry unit test (8 → 9 cabinets, 9 → 10 with selftest), the carousel unit test (`prev()` from 0 wraps to index 8, previously 7) and the hub e2e (8 → 9 cabinets). The e2e `launch` helper's rotation loop grows from 9 to 10 steps.
 - **Fallback if time runs short:** ship with 12 puzzles (4 per tier) by deleting puzzles and changing the counts in `repair-puzzles.test.ts`. Not planned; only if the 10-08 deadline forces it.
 
@@ -2371,7 +2371,7 @@ export function createGame(): GameModule {
         actualCount = 0;
         setLine(brokenRow(), /^ */.exec(run.puzzle.nodes[run.puzzle.broken.node].code[run.puzzle.broken.line])![0] + run.puzzle.options[choice], false);
         options.querySelector(`[data-option="${choice}"]`)?.classList.add('is-chosen');
-        play = { result, start: performance.now(), ms: Math.min(25, 3000 / result.trace.length), next: 0 };
+        play = { result, start: performance.now(), ms: Math.min(150, 3000 / result.trace.length), next: 0 };
         sync();
       };
 

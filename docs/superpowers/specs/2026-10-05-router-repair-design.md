@@ -166,7 +166,7 @@ interface Puzzle {
 - A grid cell with no node is empty and has no links.
 
 ### Playback
-- `index.ts` replays the trace at `min(25, 3000 / trace.length)` ms per tick, so every run takes 3 s or less. For each tick it:
+- `index.ts` replays the trace at `min(150, 3000 / trace.length)` ms per tick, so every run takes 3 s or less. For each tick it:
   - highlights each node's active line
   - animates each move as a value chip sliding along its link arrow
   - appends values that reach OUT to ACTUAL, coloured by whether they match EXPECTED at that index

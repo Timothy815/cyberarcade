@@ -123,7 +123,7 @@
   font-weight: 700;
   text-align: center;
   pointer-events: none;
-  animation: rr-chip 0.3s linear forwards;
+  animation: rr-chip var(--ms, 0.3s) linear forwards;
 }
 @keyframes rr-chip {
   from { transform: translate(calc(var(--x0) - 50%), calc(var(--y0) - 50%)); }
